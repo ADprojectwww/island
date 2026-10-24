@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="uk">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Острів із нічого</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Main Menu -->
+    <div id="main-menu" class="active">
+        <div class="menu-background">
+            <div class="waves"></div>
+        </div>
+        <div class="menu-content">
+            <h1 class="game-title">ОСТРІВ ІЗ НІЧОГО</h1>
+            <p class="game-subtitle">Твоя історія виживання починається тут</p>
+            <div class="menu-buttons">
+                <button id="btn-new-game" class="menu-btn">Нова гра</button>
+                <button id="btn-continue" class="menu-btn" disabled>Продовжити</button>
+                <button id="btn-settings" class="menu-btn">Налаштування</button>
+                <button id="btn-about" class="menu-btn">Про гру</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Settings Panel (from menu or pause) -->
+    <div id="panel-settings" class="panel hidden">
+        <button class="close-btn">&times;</button>
+        <h2>Налаштування</h2>
+        <div class="setting-row">
+            <label for="setting-sound">Звук</label>
+            <input type="checkbox" id="setting-sound" checked>
+        </div>
+        <div class="setting-row">
+            <label for="setting-volume">Гучність</label>
+            <input type="range" id="setting-volume" min="0" max="100" value="50">
+        </div>
+        <div class="setting-row">
+            <label for="setting-ui-scale">Масштаб інтерфейсу</label>
+            <select id="setting-ui-scale">
+                <option value="small">Малий</option>
+                <option value="normal" selected>Нормальний</option>
+                <option value="large">Великий</option>
+            </select>
+        </div>
+        <div class="setting-row">
+            <button id="btn-reset-save" class="danger-btn">Видалити збереження</button>
+        </div>
+    </div>
+
+    <!-- About Panel -->
+    <div id="panel-about" class="panel hidden">
+        <button class="close-btn">&times;</button>
+        <h2>Про гру</h2>
+        <p><strong>Острів із нічого</strong> — гра про виживання на безлюдному острові.</p>
+        <h3>Керування:</h3>
+        <ul>
+            <li><strong>WASD / Стрілки:</strong> Рух</li>
+            <li><strong>E:</strong> Взаємодія</li>
+            <li><strong>I:</strong> Інвентар</li>
+            <li><strong>C:</strong> Крафт</li>
+            <li><strong>B:</strong> Будівництво</li>
+            <li><strong>M:</strong> Карта</li>
+            <li><strong>Q:</strong> Завдання</li>
+            <li><strong>K:</strong> Компаньйони</li>
+            <li><strong>Esc:</strong> Пауза / Закрити</li>
+        </ul>
+        <h3>Цілі:</h3>
+        <p>Збирай ресурси, будуй укриття, приручай собак та виживай якомога довше!</p>
+    </div>
+
+    <!-- Game Container -->
+    <div id="game-container" class="hidden">
+        <canvas id="game-canvas"></canvas>
+
+        <!-- Top HUD -->
+        <div id="hud-top">
+            <div class="hud-left">
+                <div id="hud-day">День 1</div>
+                <div id="hud-time">08:00</div>
+                <div id="hud-weather">☀️</div>
+            </div>
+            <div class="hud-right">
+                <div class="stat-container" title="Здоров'я">
+                    <span class="stat-icon">❤️</span>
+                    <div class="stat-bar"><div id="hud-health" class="stat-fill health-fill"></div></div>
+                    <span id="hud-health-text" class="stat-text">100/100</span>
+                </div>
+                <div class="stat-container" title="Голод">
+                    <span class="stat-icon">🍗</span>
+                    <div class="stat-bar"><div id="hud-hunger" class="stat-fill hunger-fill"></div></div>
+                    <span id="hud-hunger-text" class="stat-text">100/100</span>
+                </div>
+                <div class="stat-container" title="Спрага">
+                    <span class="stat-icon">💧</span>
+                    <div class="stat-bar"><div id="hud-thirst" class="stat-fill thirst-fill"></div></div>
+                    <span id="hud-thirst-text" class="stat-text">100/100</span>
+                </div>
+                <div class="stat-container" title="Енергія">
+                    <span class="stat-icon">⚡</span>
+                    <div class="stat-bar"><div id="hud-energy" class="stat-fill energy-fill"></div></div>
+                    <span id="hud-energy-text" class="stat-text">100/100</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Side Panel Buttons -->
+        <div class="side-buttons">
+            <button class="side-btn" id="btn-toggle-inv" title="Інвентар (I)">🎒</button>
+            <button class="side-btn" id="btn-toggle-craft" title="Крафт (C)">🔨</button>
+            <button class="side-btn" id="btn-toggle-build" title="Будівництво (B)">🏠</button>
+            <button class="side-btn" id="btn-toggle-map" title="Карта (M)">🗺️</button>
+            <button class="side-btn" id="btn-toggle-quests" title="Завдання (Q)">📜</button>
+            <button class="side-btn" id="btn-toggle-companions" title="Компаньйони (K)">🐕</button>
+        </div>
+
+        <!-- Inventory Panel -->
+        <div id="panel-inventory" class="game-panel hidden">
+            <button class="close-btn">&times;</button>
+            <h2>Інвентар</h2>
+            <div class="equipment-area">
+                <span>Інструмент: </span>
+                <div id="equip-slot" class="inv-slot"></div>
+            </div>
+            <div class="inventory-grid" id="inv-grid">
+                <!-- 30 slots generated by JS -->
+            </div>
+        </div>
+
+        <!-- Context Menu -->
+        <div id="context-menu" class="hidden">
+            <button id="ctx-use">Використати</button>
+            <button id="ctx-equip">Екіпірувати</button>
+            <button id="ctx-drop">Викинути</button>
+        </div>
+
+        <!-- Crafting Panel -->
+        <div id="panel-crafting" class="game-panel hidden">
+            <button class="close-btn">&times;</button>
+            <h2>Крафт</h2>
+            <div id="craft-list" class="scrollable-list">
+                <!-- Recipes generated by JS -->
+            </div>
+        </div>
+
+        <!-- Building Panel -->
+        <div id="panel-building" class="game-panel hidden">
+            <button class="close-btn">&times;</button>
+            <h2>Будівництво</h2>
+            <div id="build-list" class="grid-list">
+                <!-- Buildables generated by JS -->
+            </div>
+        </div>
+
+        <!-- Map Panel -->
+        <div id="panel-map" class="game-panel hidden">
+            <button class="close-btn">&times;</button>
+            <h2>Карта</h2>
+            <canvas id="map-canvas" width="300" height="300"></canvas>
+            <div class="map-legend">🔴 Ви тут</div>
+        </div>
+
+        <!-- Quest Panel -->
+        <div id="panel-quests" class="game-panel hidden">
+            <button class="close-btn">&times;</button>
+            <h2>Завдання</h2>
+            <div id="quest-list" class="scrollable-list">
+                <!-- Quests generated by JS -->
+            </div>
+        </div>
+
+        <!-- Companion Panel -->
+        <div id="panel-companions" class="game-panel hidden">
+            <button class="close-btn">&times;</button>
+            <h2>Компаньйони</h2>
+            <div id="companion-list" class="scrollable-list">
+                <!-- Companions generated by JS -->
+            </div>
+        </div>
+
+        <!-- Dog Detail Panel -->
+        <div id="panel-dog-detail" class="game-panel hidden">
+            <button class="close-btn">&times;</button>
+            <h2><span id="dog-detail-name">Собака</span> (Рівень <span id="dog-detail-level">1</span>)</h2>
+            <button id="btn-rename-dog">✏️</button>
+            <div class="dog-stats">
+                <div class="stat-row">❤️ Здоров'я: <span id="dog-stat-health">100/100</span></div>
+                <div class="stat-row">🍗 Голод: <span id="dog-stat-hunger">100/100</span></div>
+                <div class="stat-row">⚡ Енергія: <span id="dog-stat-energy">100/100</span></div>
+                <div class="stat-row">💖 Довіра: <span id="dog-stat-trust">100%</span></div>
+                <div class="stat-row">⭐ Досвід: <span id="dog-stat-xp">0/100</span></div>
+                <div class="stat-row">Риса: <span id="dog-stat-personality">Грайливий</span></div>
+            </div>
+            <h3>Команди</h3>
+            <div class="dog-commands grid-2">
+                <button class="cmd-btn" data-cmd="follow">Слідуй</button>
+                <button class="cmd-btn" data-cmd="stay">Стій</button>
+                <button class="cmd-btn" data-cmd="come">До мене</button>
+                <button class="cmd-btn" data-cmd="search_resources">Шукай ресурси</button>
+                <button class="cmd-btn" data-cmd="search_food">Шукай їжу</button>
+                <button class="cmd-btn" data-cmd="guard">Охороняй</button>
+                <button class="cmd-btn" data-cmd="explore">Досліди</button>
+                <button class="cmd-btn" data-cmd="rest">Відпочивай</button>
+            </div>
+            <h3>Догляд</h3>
+            <div class="dog-care grid-3">
+                <button id="btn-dog-feed">Погодувати</button>
+                <button id="btn-dog-water">Напоїти</button>
+                <button id="btn-dog-pet">Погладити</button>
+                <button id="btn-dog-play">Погратися</button>
+                <button id="btn-dog-heal">Лікувати</button>
+            </div>
+            <div class="dog-items hidden" id="dog-found-items-area">
+                <h3>Знайдені предмети</h3>
+                <div id="dog-found-items" class="inventory-grid"></div>
+                <button id="btn-dog-take-items">Забрати все</button>
+            </div>
+        </div>
+
+        <!-- Chest UI -->
+        <div id="panel-chest" class="game-panel hidden">
+            <button class="close-btn">&times;</button>
+            <h2>Скриня</h2>
+            <div id="chest-grid" class="inventory-grid">
+                <!-- Chest slots -->
+            </div>
+            <h3 style="margin-top: 10px;">Ваш інвентар</h3>
+            <div id="chest-player-grid" class="inventory-grid">
+                <!-- Player inventory when chest is open -->
+            </div>
+        </div>
+
+        <!-- Notification Area -->
+        <div id="notification-area"></div>
+
+        <!-- Tooltip -->
+        <div id="tooltip" class="hidden"></div>
+
+        <!-- Interaction Prompt -->
+        <div id="interaction-prompt" class="hidden">
+            <span class="prompt-key">[E]</span> <span id="prompt-text">Взаємодіяти</span>
+        </div>
+
+        <!-- Mobile Controls -->
+        <div id="mobile-controls" class="hidden">
+            <div id="joystick-area">
+                <div id="joystick-base">
+                    <div id="joystick-stick"></div>
+                </div>
+            </div>
+            <div id="action-buttons">
+                <button id="btn-mobile-interact" class="mobile-btn">E</button>
+                <button id="btn-mobile-attack" class="mobile-btn">⚔️</button>
+            </div>
+        </div>
+
+        <!-- Pause Overlay -->
+        <div id="pause-overlay" class="hidden">
+            <h2>ПАУЗА</h2>
+            <div class="pause-menu">
+                <button id="btn-resume" class="menu-btn">Продовжити</button>
+                <button id="btn-save" class="menu-btn">Зберегти</button>
+                <button id="btn-pause-settings" class="menu-btn">Налаштування</button>
+                <button id="btn-main-menu" class="menu-btn">Головне меню</button>
+            </div>
+        </div>
+        
+        <!-- Naming Dialog -->
+        <div id="naming-dialog" class="modal hidden">
+            <div class="modal-content">
+                <h2>Як назвеш друга?</h2>
+                <input type="text" id="dog-name-input" placeholder="Ім'я собаки" maxlength="15">
+                <button id="btn-confirm-name">Підтвердити</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="save.js"></script>
+    <script src="systems.js"></script>
+    <script src="animals.js"></script>
+    <script src="game.js"></script>
+</body>
+</html>
