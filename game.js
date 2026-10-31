@@ -1564,7 +1564,10 @@ class Game {
             for (let b of this.buildingSystem.buildings) {
                 if (!this.camera.isVisible(b.x, b.y)) continue;
                 let pos = this.camera.worldToScreen(b.x, b.y);
-                let bDef = window.BUILDING_DB[b.type];\n                this.drawBuilding(b, pos, bDef);\n            }\n        }
+                let bDef = window.BUILDING_DB[b.type];
+                this.drawBuilding(b, pos, bDef);
+            }
+        }
 
         // Draw Village Trader
         if (this.villageTrader && this.camera.isVisible(this.villageTrader.x, this.villageTrader.y)) {
@@ -3477,7 +3480,11 @@ window.updateMapUI = function() {
 window.Game = Game;
 
 // --- Application Entry Point ---
-window.addEventListener('load', () => {
+let appInitialized = false;
+function initIslandGameApp() {
+    if (appInitialized) return;
+    appInitialized = true;
+
     window.game = new Game();
     
     // Check savegame for Continue button
@@ -3493,13 +3500,21 @@ window.addEventListener('load', () => {
     // Main Menu Buttons
     let btnNew = document.getElementById('btn-new-game');
     if (btnNew) btnNew.onclick = () => {
-        window.game.init();
-        window.game.start();
+        try {
+            window.game.init();
+            window.game.start();
+        } catch (err) {
+            console.error('Error starting new game:', err);
+        }
     };
     
     if (btnCont) btnCont.onclick = () => {
-        window.game.loadFromSave();
-        window.game.start();
+        try {
+            window.game.loadFromSave();
+            window.game.start();
+        } catch (err) {
+            console.error('Error loading game:', err);
+        }
     };
     
     let btnSettings = document.getElementById('btn-settings');
@@ -3606,7 +3621,14 @@ window.addEventListener('load', () => {
             e.target.blur();
         }
     });
-});
+}
+
+if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initIslandGameApp);
+    window.addEventListener('load', initIslandGameApp);
+} else {
+    initIslandGameApp();
+}
 
 
 
