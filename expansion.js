@@ -737,12 +737,12 @@ window.BunkerSystem = class BunkerSystem {
 if (window.SaveManager && !window.SaveManager.rawSave) {
     window.SaveManager.rawSave = function(data) {
         try {
-            localStorage.setItem('island_save', JSON.stringify(data));
+            return window.SaveManager.save(data);
         } catch (e) {
             console.warn('SaveManager.rawSave failed:', e);
+            return false;
         }
     };
 }
 
 console.log('[expansion.js] Fog of War, Diseases, Electricity, Bunker — loaded ✅');
-
