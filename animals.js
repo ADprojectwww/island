@@ -37,6 +37,10 @@ window.Animal = class Animal {
         } else if (species === 'wild_dog') {
             this.speed = 70; this.health = 50; this.maxHealth = 50; this.detectionRadius = 130;
             this.colorIndex = getRandomInt(0, 4);
+        } else if (species === 'chicken') {
+            this.speed = 45; this.health = 15; this.maxHealth = 15; this.detectionRadius = 90;
+        } else if (species === 'goat') {
+            this.speed = 40; this.health = 50; this.maxHealth = 50; this.detectionRadius = 100;
         }
         
         this.state = 'idle';
@@ -115,6 +119,25 @@ window.Animal = class Animal {
             return { message: "Папуга кричить щось незрозуміле.", action: null };
         } else if (this.species === 'boar') {
             return { message: "Кабан виглядає агресивним!", action: null };
+        } else if (this.species === 'chicken') {
+            if (playerInventory && playerInventory.hasItem('berry_seeds', 1)) {
+                playerInventory.removeItem('berry_seeds', 1);
+                playerInventory.addItem('egg', 1);
+                if (window.soundSystem) window.soundSystem.playChicken();
+                return { message: "Ви погодували курку насінням! Вона знесла свіже яйце.", action: 'feed' };
+            }
+            if (window.soundSystem) window.soundSystem.playChicken();
+            return { message: "Курка кудкудаче. Погодуйте її насінням ягід, щоб отримати яйця.", action: null };
+        } else if (this.species === 'goat') {
+            if (playerInventory && (playerInventory.hasItem('fiber', 2) || playerInventory.hasItem('branch', 2))) {
+                if (playerInventory.hasItem('fiber', 2)) playerInventory.removeItem('fiber', 2);
+                else playerInventory.removeItem('branch', 2);
+                playerInventory.addItem('milk', 1);
+                if (window.soundSystem) window.soundSystem.playGoat();
+                return { message: "Ви нагодували козу і надоїли свіжого козячого молока!", action: 'feed' };
+            }
+            if (window.soundSystem) window.soundSystem.playGoat();
+            return { message: "Коза дружелюбно бекає. Дайте їй рослинне волокно або гілки, щоб отримати молоко.", action: null };
         }
         return { message: "Тварина", action: null };
     }
@@ -310,6 +333,10 @@ window.Animal = class Animal {
             this.drawBoar(ctx);
         } else if (this.species === 'wild_dog') {
             this.drawDog(ctx, this.colorIndex, false);
+        } else if (this.species === 'chicken') {
+            this.drawChicken(ctx);
+        } else if (this.species === 'goat') {
+            this.drawGoat(ctx);
         }
 
         if (this.state === 'sleep') {
@@ -319,6 +346,96 @@ window.Animal = class Animal {
         }
 
         ctx.restore();
+    }
+
+    drawChicken(ctx) {
+        // Body
+        ctx.fillStyle = '#FFFFFF';
+        ctx.beginPath();
+        ctx.ellipse(0, 3, 9, 7, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#D1D5DB';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Head
+        const hx = (this.direction === 2 || this.direction === 0 ? 7 : -7);
+        ctx.beginPath();
+        ctx.arc(hx, -2, 5, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Comb & wattle (red)
+        ctx.fillStyle = '#EF4444';
+        ctx.beginPath();
+        ctx.arc(hx, -7, 2.5, 0, Math.PI * 2);
+        ctx.arc(hx + (this.direction === 2 || this.direction === 0 ? -2 : 2), -7, 2, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.beginPath();
+        ctx.arc(hx + 1, 2, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Beak (yellow)
+        ctx.fillStyle = '#F59E0B';
+        ctx.beginPath();
+        const bx = hx + (this.direction === 2 || this.direction === 0 ? 4 : -4);
+        ctx.moveTo(bx, -3);
+        ctx.lineTo(bx + (this.direction === 2 || this.direction === 0 ? 4 : -4), -1);
+        ctx.lineTo(bx, 1);
+        ctx.closePath();
+        ctx.fill();
+
+        // Tail
+        ctx.fillStyle = '#9CA3AF';
+        const tx = (this.direction === 2 || this.direction === 0 ? -9 : 9);
+        ctx.beginPath();
+        ctx.moveTo(tx, 1);
+        ctx.lineTo(tx + (this.direction === 2 || this.direction === 0 ? -4 : 4), -4);
+        ctx.lineTo(tx, 5);
+        ctx.closePath();
+        ctx.fill();
+    }
+
+    drawGoat(ctx) {
+        // Body
+        ctx.fillStyle = '#E2E8F0';
+        ctx.beginPath();
+        ctx.ellipse(0, 4, 14, 9, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.strokeStyle = '#94A3B8';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Head
+        const hx = (this.direction === 2 || this.direction === 0 ? 12 : -12);
+        ctx.fillStyle = '#CBD5E1';
+        ctx.beginPath();
+        ctx.ellipse(hx, -2, 6, 8, 0.2, 0, Math.PI * 2);
+        ctx.fill();
+
+        // Horns
+        ctx.fillStyle = '#78350F';
+        ctx.beginPath();
+        ctx.moveTo(hx - 2, -8);
+        ctx.lineTo(hx - 5, -14);
+        ctx.lineTo(hx, -9);
+        ctx.closePath();
+        ctx.fill();
+
+        // Beard
+        ctx.fillStyle = '#94A3B8';
+        ctx.beginPath();
+        ctx.moveTo(hx + 1, 4);
+        ctx.lineTo(hx + 2, 8);
+        ctx.lineTo(hx - 1, 5);
+        ctx.closePath();
+        ctx.fill();
+
+        // Legs
+        ctx.fillStyle = '#64748B';
+        ctx.fillRect(-8, 10, 3, 7);
+        ctx.fillRect(-3, 10, 3, 7);
+        ctx.fillRect(4, 10, 3, 7);
+        ctx.fillRect(9, 10, 3, 7);
     }
 
     drawRabbit(ctx) {
@@ -1006,6 +1123,8 @@ window.AnimalManager = class AnimalManager {
             if (species === 'parrot' && tile === 4) valid = true; // jungle
             if (species === 'boar' && (tile === 4 || tile === 3)) valid = true; // jungle/grass
             if (species === 'wild_dog' && tile === 3) valid = true; // grass
+            if (species === 'chicken' && (tile === 3 || tile === 2)) valid = true; // grass/beach
+            if (species === 'goat' && (tile === 3 || tile === 4)) valid = true; // grass/forest
             
             if (valid) {
                 const wx = tx * tileSize + tileSize/2;
@@ -1035,7 +1154,7 @@ window.AnimalManager = class AnimalManager {
         if (this.spawnTimer > 300) { // Every 5 game minutes
             this.spawnTimer = 0;
             if (this.animals.length < 15 && worldW && worldH) {
-                const speciesList = ['rabbit', 'turtle', 'parrot', 'boar', 'wild_dog'];
+                const speciesList = ['rabbit', 'turtle', 'parrot', 'boar', 'wild_dog', 'chicken', 'goat'];
                 const sp = speciesList[Math.floor(Math.random() * speciesList.length)];
                 this.spawnAnimal(sp, worldTiles, tileSize, worldW, worldH);
             }

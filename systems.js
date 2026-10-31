@@ -11,6 +11,10 @@ window.ITEM_DB = {
   'cooked_fish':    { id:'cooked_fish', name:'Печена риба', icon:'cooked_fish', category:'food', maxStack:5, description:'Смачна печена риба', effects:{hunger:35,health:5} },
   'cooked_meat':    { id:'cooked_meat', name:'Печене м\'ясо', icon:'cooked_meat', category:'food', maxStack:5, description:'Печене м\'ясо', effects:{hunger:30,health:5} },
   'meat':           { id:'meat', name:'М\'ясо', icon:'meat', category:'food', maxStack:5, description:'Сире м\'ясо', effects:{hunger:10} },
+  'canned_food':    { id:'canned_food', name:'Консерви', icon:'canned_food', category:'food', maxStack:6, description:'Запас їжі з тривалим терміном зберігання', effects:{hunger:35,health:8} },
+  'ammo':           { id:'ammo', name:'Набої', icon:'ammo', category:'ammo', maxStack:30, description:'Набої для вогнепальної зброї' },
+  'pistol':         { id:'pistol', name:'Пістолет', icon:'pistol', category:'weapon', maxStack:1, damage:28, range:210, cooldown:0.45, description:'Надійна зброя на близькій відстані' },
+  'rifle':          { id:'rifle', name:'Автомат', icon:'rifle', category:'weapon', maxStack:1, damage:42, range:300, cooldown:0.18, description:'Потужна автоматична зброя' },
   'rare_material':  { id:'rare_material', name:'Рідкісний матеріал', icon:'rare', category:'resource', maxStack:5, description:'Рідкісний матеріал' },
   'stone_axe':      { id:'stone_axe', name:'Кам\'яна сокира', icon:'axe', category:'tool', maxStack:1, toolType:'axe', power:2, description:'Примітивна сокира' },
   'stone_knife':    { id:'stone_knife', name:'Кам\'яний ніж', icon:'knife', category:'tool', maxStack:1, toolType:'knife', power:1, description:'Гострий кам\'яний ніж' },
@@ -28,7 +32,35 @@ window.ITEM_DB = {
   'chest_item':     { id:'chest_item', name:'Скриня (предмет)', icon:'chest', category:'building', maxStack:1, placeable:'chest', description:'Розмістіть скриню' },
   'dog_house_item': { id:'dog_house_item', name:'Собача будка (предмет)', icon:'dog_house', category:'building', maxStack:1, placeable:'dog_house', description:'Розмістіть будку' },
   'wooden_house_item': { id:'wooden_house_item', name:'Дерев\'яний будинок (предмет)', icon:'wooden_house', category:'building', maxStack:1, placeable:'wooden_house', description:'Розмістіть будинок' },
-  'garden_item':    { id:'garden_item', name:'Грядка (предмет)', icon:'garden', category:'building', maxStack:1, placeable:'garden', description:'Розмістіть грядку' }
+  'garden_item':    { id:'garden_item', name:'Грядка (предмет)', icon:'garden', category:'building', maxStack:1, placeable:'garden', description:'Розмістіть грядку' },
+  'metal_scrap':    { id:'metal_scrap', name:'Металобрухт', icon:'metal', category:'resource', maxStack:20, description:'Шматок металу з уламків літака' },
+  'electronics':   { id:'electronics', name:'Електроніка', icon:'electronics', category:'resource', maxStack:10, description:'Електронні компоненти з літака' },
+  'fuel':          { id:'fuel', name:'Паливо', icon:'fuel', category:'resource', maxStack:5, description:'Авіаційне паливо' },
+  'glass_shard':   { id:'glass_shard', name:'Уламки скла', icon:'glass', category:'resource', maxStack:15, description:'Скло з ілюмінатора літака' },
+  'car':           { id:'car', name:'Позашляховик', icon:'car', category:'vehicle', maxStack:1, description:'Саморобний позашляховик для швидкого пересування' },
+  'generator':     { id:'generator', name:'Генератор', icon:'generator', category:'tool', maxStack:1, description:'Саморобний генератор електроенергії' },
+  'machinegun':    { id:'machinegun', name:'Кулемет', icon:'machinegun', category:'weapon', maxStack:1, damage:65, range:320, cooldown:0.12, description:'Потужний кулемет з уламків військового літака' },
+  'sniper_rifle':  { id:'sniper_rifle', name:'Снайперська гвинтівка', icon:'sniper', category:'weapon', maxStack:1, damage:95, range:500, cooldown:1.2, description:'Точна снайперська гвинтівка' },
+  'metal_armor':   { id:'metal_armor', name:'Металевий броньжилет', icon:'armor', category:'armor', maxStack:1, description:'Захисний жилет зі шматків металу, зменшує пошкодження на 40%' },
+  'plank':         { id:'plank', name:'Дошка', icon:'plank', category:'resource', maxStack:20, description:'Обрізана дерев\'яна дошка' },
+  'bridge_item':   { id:'bridge_item', name:'Міст (секція)', icon:'bridge', category:'building', maxStack:5, placeable:'bridge', description:'Секція мосту через воду' },
+  'dock_item':     { id:'dock_item', name:'Причал (предмет)', icon:'dock', category:'building', maxStack:1, placeable:'dock', description:'Причал для швидкого посадки/виходу з човна' },
+  'sulfur':         { id:'sulfur', name:'Сірка', icon:'sulfur', category:'resource', maxStack:20, description:'Жовта сірка з вулканічного острова' },
+  'gunpowder':      { id:'gunpowder', name:'Порох', icon:'gunpowder', category:'resource', maxStack:30, description:'Порох для виготовлення набоїв' },
+  'pearl':          { id:'pearl', name:'Перлина', icon:'pearl', category:'resource', maxStack:15, description:'Цінна морська перлина з рифів' },
+  'seaweed':        { id:'seaweed', name:'Водорості', icon:'seaweed', category:'food', maxStack:20, description:'Поживні морські водорості', effects:{hunger:6,thirst:4} },
+  'berry_seeds':    { id:'berry_seeds', name:'Насіння ягід', icon:'seeds', category:'resource', maxStack:30, description:'Насіння для посадки на грядку' },
+  'palm_seed':      { id:'palm_seed', name:'Саджанець пальми', icon:'seedling', category:'resource', maxStack:10, description:'Саджанець пальми' },
+  'egg':            { id:'egg', name:'Яйце', icon:'egg', category:'food', maxStack:15, description:'Свіже куряче яйце', effects:{hunger:8} },
+  'cooked_egg':     { id:'cooked_egg', name:'Яєчня', icon:'cooked_egg', category:'food', maxStack:10, description:'Смажена яєчня', effects:{hunger:25,health:5} },
+  'milk':           { id:'milk', name:'Молоко', icon:'milk', category:'food', maxStack:5, description:'Свіже козяче молоко', effects:{hunger:15,thirst:30,health:5} },
+  'gold_coin':      { id:'gold_coin', name:'Золота монета', icon:'gold', category:'resource', maxStack:50, description:'Піратське золото для торгівлі в селі' },
+  'fence_item':     { id:'fence_item', name:'Частокіл (предмет)', icon:'fence', category:'building', maxStack:10, placeable:'fence', description:'Дерев\'яний частокіл для захисту' },
+  'gate_item':      { id:'gate_item', name:'Ворота (предмет)', icon:'gate', category:'building', maxStack:5, placeable:'gate', description:'Ворота для проходу' },
+  'spikes_item':    { id:'spikes_item', name:'Шипи (предмет)', icon:'spikes', category:'building', maxStack:10, placeable:'spikes', description:'Шипи, які ранять нападників' },
+  'spotlight_item': { id:'spotlight_item', name:'Прожектор (предмет)', icon:'spotlight', category:'building', maxStack:2, placeable:'spotlight', description:'Потужний прожектор відлякує зомбі' },
+  'animal_pen_item':{ id:'animal_pen_item', name:'Загін для тварин (предмет)', icon:'pen', category:'building', maxStack:1, placeable:'animal_pen', description:'Загін для утримання тварин' },
+  'radio_tower_item':{ id:'radio_tower_item', name:'Радіовежа SOS (предмет)', icon:'radio', category:'building', maxStack:1, placeable:'radio_tower', description:'Радіовежа для виклику гелікоптера' }
 };
 
 window.RECIPE_DB = {
@@ -50,7 +82,25 @@ window.RECIPE_DB = {
   'wooden_house_item': { id:'wooden_house_item', name:'Дерев\'яний будинок', result:{id:'wooden_house_item',count:1}, materials:[{id:'wood',count:20},{id:'stone',count:8},{id:'rope',count:3}], requires:'workbench' },
   'garden_item':    { id:'garden_item', name:'Грядка', result:{id:'garden_item',count:1}, materials:[{id:'wood',count:4},{id:'fiber',count:2}], requires:'workbench' },
   'cooked_fish':    { id:'cooked_fish', name:'Печена риба', result:{id:'cooked_fish',count:1}, materials:[{id:'fish',count:1}], requires:'campfire' },
-  'cooked_meat':    { id:'cooked_meat', name:'Печене м\'ясо', result:{id:'cooked_meat',count:1}, materials:[{id:'meat',count:1}], requires:'campfire' }
+  'cooked_meat':    { id:'cooked_meat', name:'Печене м\'ясо', result:{id:'cooked_meat',count:1}, materials:[{id:'meat',count:1}], requires:'campfire' },
+  'plank':          { id:'plank', name:'Дошки', result:{id:'plank',count:2}, materials:[{id:'wood',count:1}], requires:'workbench' },
+  'plank_hand':     { id:'plank_hand', name:'Дошка (вручну)', result:{id:'plank',count:1}, materials:[{id:'wood',count:2}], requires:null },
+  'machinegun':     { id:'machinegun', name:'Кулемет', result:{id:'machinegun',count:1}, materials:[{id:'metal_scrap',count:12},{id:'electronics',count:3},{id:'rope',count:4}], requires:'workbench' },
+  'sniper_rifle':   { id:'sniper_rifle', name:'Снайперська гвинтівка', result:{id:'sniper_rifle',count:1}, materials:[{id:'metal_scrap',count:10},{id:'electronics',count:5},{id:'rope',count:3}], requires:'workbench' },
+  'metal_armor':    { id:'metal_armor', name:'Броньжилет', result:{id:'metal_armor',count:1}, materials:[{id:'metal_scrap',count:8},{id:'fiber',count:6},{id:'rope',count:3}], requires:'workbench' },
+  'generator':      { id:'generator', name:'Генератор', result:{id:'generator',count:1}, materials:[{id:'metal_scrap',count:10},{id:'electronics',count:8},{id:'fuel',count:2}], requires:'workbench' },
+  'car':            { id:'car', name:'Позашляховик', result:{id:'car',count:1}, materials:[{id:'metal_scrap',count:20},{id:'electronics',count:10},{id:'fuel',count:3},{id:'rope',count:5}], requires:'workbench' },
+  'bridge_item':    { id:'bridge_item', name:'Міст (секція)', result:{id:'bridge_item',count:1}, materials:[{id:'plank',count:6},{id:'rope',count:2}], requires:'workbench' },
+  'dock_item':      { id:'dock_item', name:'Причал', result:{id:'dock_item',count:1}, materials:[{id:'plank',count:12},{id:'rope',count:4},{id:'stone',count:6}], requires:'workbench' },
+  'gunpowder':      { id:'gunpowder', name:'Порох', result:{id:'gunpowder',count:2}, materials:[{id:'sulfur',count:1},{id:'wood',count:1}], requires:'workbench' },
+  'ammo_craft':     { id:'ammo_craft', name:'Набої (10 шт)', result:{id:'ammo',count:10}, materials:[{id:'gunpowder',count:2},{id:'metal_scrap',count:1}], requires:'workbench' },
+  'cooked_egg':     { id:'cooked_egg', name:'Яєчня', result:{id:'cooked_egg',count:1}, materials:[{id:'egg',count:1}], requires:'campfire' },
+  'fence_item':     { id:'fence_item', name:'Частокіл', result:{id:'fence_item',count:2}, materials:[{id:'plank',count:2},{id:'wood',count:1}], requires:'workbench' },
+  'gate_item':      { id:'gate_item', name:'Ворота', result:{id:'gate_item',count:1}, materials:[{id:'plank',count:4},{id:'rope',count:1}], requires:'workbench' },
+  'spikes_item':    { id:'spikes_item', name:'Шипи', result:{id:'spikes_item',count:2}, materials:[{id:'wood',count:2},{id:'metal_scrap',count:1}], requires:null },
+  'spotlight_item': { id:'spotlight_item', name:'Прожектор', result:{id:'spotlight_item',count:1}, materials:[{id:'metal_scrap',count:6},{id:'electronics',count:2},{id:'glass_shard',count:4}], requires:'workbench' },
+  'animal_pen_item':{ id:'animal_pen_item', name:'Загін для тварин', result:{id:'animal_pen_item',count:1}, materials:[{id:'wood',count:10},{id:'rope',count:3},{id:'plank',count:4}], requires:'workbench' },
+  'radio_tower_item':{ id:'radio_tower_item', name:'Радіовежа SOS', result:{id:'radio_tower_item',count:1}, materials:[{id:'metal_scrap',count:15},{id:'electronics',count:8},{id:'generator',count:1},{id:'rope',count:4}], requires:'workbench' }
 };
 
 window.BUILDING_DB = {
@@ -63,7 +113,15 @@ window.BUILDING_DB = {
   'garden':         { id:'garden', name:'Грядка', width:50, height:50, passable:true, maxHealth:50, description:'Для вирощування рослин', func:'farming' },
   'dog_house':      { id:'dog_house', name:'Собача будка', width:40, height:40, passable:false, maxHealth:100, description:'Місце відпочинку для собаки', func:'dog_rest' },
   'feeder':         { id:'feeder', name:'Годівниця', width:30, height:30, passable:false, maxHealth:60, description:'Годівниця для тварин', func:'dog_food' },
-  'waterer':        { id:'waterer', name:'Поїлка', width:30, height:30, passable:false, maxHealth:60, description:'Поїлка для тварин', func:'dog_water' }
+  'waterer':        { id:'waterer', name:'Поїлка', width:30, height:30, passable:false, maxHealth:60, description:'Поїлка для тварин', func:'dog_water' },
+  'bridge':  { id:'bridge', name:'Міст', width:32, height:64, passable:true, maxHealth:200, description:'Секція мосту — можна ходити по воді', func:'bridge' },
+  'dock':    { id:'dock', name:'Причал', width:80, height:48, passable:true, maxHealth:250, description:'Причал для човна', func:'dock' },
+  'fence':        { id:'fence', name:'Частокіл', width:32, height:32, passable:false, maxHealth:250, description:'Захисний частокіл', func:'defense' },
+  'gate':         { id:'gate', name:'Ворота', width:36, height:36, passable:true, maxHealth:250, description:'Ворота бази', func:'gate' },
+  'spikes':       { id:'spikes', name:'Шипи', width:32, height:32, passable:true, maxHealth:120, description:'Шипи для пастки', func:'spikes' },
+  'spotlight':    { id:'spotlight', name:'Прожектор', width:36, height:36, passable:false, maxHealth:180, description:'Прожектор проти нічних істот', func:'spotlight' },
+  'animal_pen':   { id:'animal_pen', name:'Загін для тварин', width:80, height:80, passable:true, maxHealth:300, description:'Загін для утримання тварин', func:'pen' },
+  'radio_tower':  { id:'radio_tower', name:'Радіовежа SOS', width:54, height:72, passable:false, maxHealth:600, description:'Радіовежа для виклику гелікоптера', func:'radio_tower' }
 };
 
 window.Inventory = class Inventory {
@@ -168,7 +226,7 @@ window.Inventory = class Inventory {
       return true;
     }
     
-    if (itemData.category === 'tool') {
+    if (itemData.category === 'tool' || itemData.category === 'weapon') {
       playerStats.equippedTool = slot.id;
       return true;
     }
@@ -329,10 +387,21 @@ window.BuildingSystem = class BuildingSystem {
     const rx = Math.floor(x / tileSize);
     const ry = Math.floor(y / tileSize);
 
-    if (!worldTiles || !worldTiles[ry] || worldTiles[ry][rx] === undefined || worldTiles[ry][rx] === 0 || worldTiles[ry][rx] === 1) {
+    const isBridge = typeId === 'bridge' || typeId === 'dock';
+    if (!isBridge) {
+      if (!worldTiles || !worldTiles[ry] || worldTiles[ry][rx] === undefined || worldTiles[ry][rx] === 0 || worldTiles[ry][rx] === 1) {
         return { valid: false, reason: 'Не можна будувати на воді або за межами острова' };
+      }
+    } else {
+      // Bridge/dock: must be on water (type 0 or 1) or shallow (1), or beach (2)
+      if (!worldTiles || !worldTiles[ry] || worldTiles[ry][rx] === undefined) {
+        return { valid: false, reason: 'За межами карти' };
+      }
+      const tile = worldTiles[ry][rx];
+      if (tile !== 0 && tile !== 1 && tile !== 2) {
+        return { valid: false, reason: 'Міст можна будувати тільки на воді або пляжі' };
+      }
     }
-
     const rect1 = { x: x - bData.width/2, y: y - bData.height/2, w: bData.width, h: bData.height };
     for (const b of this.buildings) {
       const b2Data = window.BUILDING_DB[b.type];
@@ -454,7 +523,59 @@ window.BuildingSystem = class BuildingSystem {
     }
 
     if (bData.func === 'farming') {
-      return { action: 'farming', message: 'Грядка готова до посіву.', data: b };
+      if (!b.crop) {
+        if (player.inventory.hasItem('berry_seeds', 1)) {
+          player.inventory.removeItem('berry_seeds', 1);
+          b.crop = 'berry';
+          b.growProgress = 0;
+          b.isWatered = false;
+          return { action: 'farming', message: 'Посаджено кущ лісових ягід! Полийте водою для швидшого росту.', data: b };
+        } else if (player.inventory.hasItem('palm_seed', 1)) {
+          player.inventory.removeItem('palm_seed', 1);
+          b.crop = 'coconut';
+          b.growProgress = 0;
+          b.isWatered = false;
+          return { action: 'farming', message: 'Посаджено саджанець пальми! Полийте водою.', data: b };
+        }
+        return { action: 'none', message: 'Потрібне насіння ягід або саджанець пальми для посадки.', data: b };
+      } else {
+        if (!b.isWatered && player.inventory.hasItem('water', 1)) {
+          player.inventory.removeItem('water', 1);
+          b.isWatered = true;
+          b.growProgress = Math.min(100, (b.growProgress || 0) + 35);
+          return { action: 'farming', message: 'Грядку полито! Ріст прискорено.', data: b };
+        }
+        if (b.growProgress >= 100) {
+          const cropId = b.crop;
+          const count = cropId === 'berry' ? 4 : 2;
+          player.inventory.addItem(cropId, count);
+          player.inventory.addItem('berry_seeds', 1);
+          b.crop = null;
+          b.growProgress = 0;
+          b.isWatered = false;
+          return { action: 'harvest', message: `Зібрано свіжий врожай (${count} шт) та насіння!`, data: b };
+        }
+        const prog = Math.floor(b.growProgress || 0);
+        return { action: 'none', message: `Рослина росте... ${prog}% ${b.isWatered ? '(Полито)' : '(Потрібен полив)'}`, data: b };
+      }
+    }
+
+    if (bData.func === 'gate') {
+      b.isOpen = !b.isOpen;
+      return { action: 'gate', message: b.isOpen ? 'Ворота відчинено.' : 'Ворота зачинено.', data: b };
+    }
+
+    if (bData.func === 'pen') {
+      return { action: 'pen', message: 'Загін для тварин. Годуйте курей насінням, а кіз волокном.', data: b };
+    }
+
+    if (bData.func === 'spotlight') {
+      b.active = !b.active;
+      return { action: 'spotlight', message: b.active ? 'Прожектор увімкнено! Світло відлякує зомбі.' : 'Прожектор вимкнено.', data: b };
+    }
+
+    if (bData.func === 'radio_tower') {
+      return { action: 'radio_tower', message: 'Радіовежа SOS. Взаємодійте для виклику рятувальників!', data: b };
     }
 
     if (bData.func === 'dog_rest' || bData.func === 'dog_food' || bData.func === 'dog_water') {
@@ -751,13 +872,22 @@ window.QuestSystem = class QuestSystem {
 window.EventSystem = class EventSystem {
   constructor() {
     this.lastEventTime = 0;
-    this.minCooldown = 300;
+    this.minCooldown = 180;
+    this.nextPlaneCrashTime = 15;
     this.eventLog = [];
   }
 
   update(dt, gameState) {
+    // Game chooses a valid land position for the crash site.
+    if (gameState.totalTime >= this.nextPlaneCrashTime) {
+      this.lastEventTime = gameState.totalTime;
+      this.nextPlaneCrashTime = gameState.totalTime + 300 + Math.random() * 180;
+      const ev = { type: 'plane_crash', data: {}, message: 'У небі пролунав вибух — літак упав на острові!' };
+      this.eventLog.push(ev.message);
+      return ev;
+    }
     if (gameState.totalTime - this.lastEventTime > this.minCooldown) {
-      if (Math.random() < 0.001) {
+      if (Math.random() < 0.0005) {
         this.lastEventTime = gameState.totalTime;
         const events = [
           { type: 'supply_drop', data: { x: Math.random() * 1000, y: Math.random() * 1000 }, message: 'Припаси викинуто на берег!' },
@@ -775,6 +905,7 @@ window.EventSystem = class EventSystem {
     return {
       lastEventTime: this.lastEventTime,
       minCooldown: this.minCooldown,
+      nextPlaneCrashTime: this.nextPlaneCrashTime,
       eventLog: this.eventLog
     };
   }
@@ -784,6 +915,7 @@ window.EventSystem = class EventSystem {
     if (data) {
       sys.lastEventTime = data.lastEventTime || 0;
       sys.minCooldown = data.minCooldown || 300;
+      sys.nextPlaneCrashTime = data.nextPlaneCrashTime || 15;
       sys.eventLog = data.eventLog || [];
     }
     return sys;

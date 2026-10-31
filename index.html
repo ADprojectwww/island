@@ -59,6 +59,8 @@
         <ul>
             <li><strong>WASD / Стрілки:</strong> Рух</li>
             <li><strong>E:</strong> Взаємодія</li>
+            <li><strong>F / ⚔️:</strong> Атака (пістолет або автомат потрібно екіпірувати в інвентарі)</li>
+            <li><strong>Ліва кнопка миші:</strong> Стріляти в напрямку курсора; утримуйте для черги з автомата</li>
             <li><strong>I:</strong> Інвентар</li>
             <li><strong>C:</strong> Крафт</li>
             <li><strong>B:</strong> Будівництво</li>
@@ -159,7 +161,7 @@
             <button class="close-btn">&times;</button>
             <h2>Карта</h2>
             <canvas id="map-canvas" width="300" height="300"></canvas>
-            <div class="map-legend">🔴 Ви тут</div>
+            <div class="map-legend">🔴 Ви тут · 🟠 уламки літака · ⚪ човен · 🟥 пірати</div>
         </div>
 
         <!-- Quest Panel -->
@@ -256,6 +258,37 @@
             </div>
         </div>
 
+                <!-- SOS Evacuation HUD -->
+        <div id="sos-hud" class="hidden" style="position:absolute; top:70px; left:50%; transform:translateX(-50%); background:rgba(220,38,38,0.85); color:#fff; padding:10px 24px; border-radius:30px; font-weight:bold; font-size:1.1rem; box-shadow:0 4px 15px rgba(0,0,0,0.5); z-index:40; display:none; align-items:center; gap:12px; border:2px solid #FEF08A;">
+            <span>🚨 СИГНАЛ SOS АКТИВОВАНО!</span>
+            <span id="sos-timer" style="font-family:monospace; font-size:1.3rem; background:rgba(0,0,0,0.3); padding:2px 8px; border-radius:6px;">03:00</span>
+            <span style="font-size:0.9rem;">Захищайте радіовежу до прибуття гелікоптера!</span>
+        </div>
+
+        <!-- Village Trader Modal -->
+        <div id="trader-dialog" class="modal hidden">
+            <div class="modal-content" style="max-width:550px; width:90%;">
+                <button class="close-btn" id="btn-close-trader">&times;</button>
+                <h2 style="color:#F59E0B; margin-top:0;">🏪 Сільський торговець</h2>
+                <p style="color:#94A3B8; font-size:0.95rem; margin-bottom:15px;">Обмінюйте знайдені скарби, перлини та ресурси на цінні припаси!</p>
+                <div id="trader-offers" style="display:flex; flex-direction:column; gap:10px; max-height:340px; overflow-y:auto; text-align:left; padding-right:5px;">
+                    <!-- Offers dynamically populated -->
+                </div>
+            </div>
+        </div>
+
+        <!-- Victory Overlay -->
+        <div id="victory-overlay" class="modal hidden">
+            <div class="modal-content" style="max-width:500px; text-align:center; background:linear-gradient(135deg, rgba(16,40,24,0.95), rgba(20,60,40,0.95)); border:2px solid #10B981;">
+                <h1 style="color:#34D399; font-size:2.4rem; margin-bottom:10px;">🎉 ВИ ВРЯТУВАЛИСЯ!</h1>
+                <p style="font-size:1.1rem; color:#E2E8F0;">Гелікоптер забрав вас із безлюдного архіпелагу!</p>
+                <div id="victory-stats" style="background:rgba(0,0,0,0.35); padding:15px; border-radius:10px; margin:20px 0; text-align:left; font-size:0.95rem; line-height:1.6;">
+                    <!-- Stats populated on win -->
+                </div>
+                <button id="btn-victory-restart" class="menu-btn" style="background:#10B981; color:#fff; font-weight:bold; padding:12px 28px;">Головне меню</button>
+            </div>
+        </div>
+
         <!-- Pause Overlay -->
         <div id="pause-overlay" class="hidden">
             <h2>ПАУЗА</h2>
@@ -277,6 +310,7 @@
         </div>
     </div>
 
+    <script src="audio.js"></script>
     <script src="save.js"></script>
     <script src="systems.js"></script>
     <script src="animals.js"></script>
