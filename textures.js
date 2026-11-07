@@ -26,6 +26,7 @@
     }
     function drawWindSprite(ctx, atlas, cell, x, bottom, w, h, sway) {
         const image = atlases[atlas];
+        if (!image || !image.complete || !image.naturalWidth) return;
         const sw = image.naturalWidth / 3, sh = image.naturalHeight / 3;
         const sx = cell % 3 * sw + 1, sy = Math.floor(cell / 3) * sh + 1;
         // Bend the canopy more than the base; roots and foundations stay planted.
@@ -62,7 +63,7 @@
     }
     function atlasSprite(ctx, atlas, cell, x, y, w, h) {
         const image = atlases[atlas];
-        if (!image || cell === undefined) return false;
+        if (!image || !image.complete || !image.naturalWidth || cell === undefined) return false;
         const sw = image.naturalWidth / 3, sh = image.naturalHeight / 3;
         ctx.drawImage(image, cell % 3 * sw + 1, Math.floor(cell / 3) * sh + 1, sw - 2, sh - 2, x, y, w, h);
         return true;
@@ -71,6 +72,7 @@
         const key = 'png-terrain:' + type;
         if (!cache.has(key)) {
             const image = atlases.terrain;
+            if (!image || !image.complete || !image.naturalWidth) return null;
             const c = document.createElement('canvas'); c.width = c.height = 256;
             const ctx = c.getContext('2d');
             const sw = image.naturalWidth / 3, sh = image.naturalHeight / 2;
@@ -236,7 +238,7 @@
         },
         drawAnimal(ctx, animal, camera, companion = false) {
             const spec = animalRows[companion ? 'companion' : animal.species];
-            if (!spec || !atlases[spec[0]]) return false;
+            if (!spec || !atlases[spec[0]] || !atlases[spec[0]].complete || !atlases[spec[0]].naturalWidth) return false;
             const image = atlases[spec[0]], sw = image.naturalWidth / 4, sh = image.naturalHeight / 4;
             const motion = animalMotion.get(animal);
             const moving = motion?.moving || false;
@@ -283,7 +285,7 @@
         },
         drawPlayer(ctx, player, camera) {
             const image = atlases.player;
-            if (!image) return false;
+            if (!image || !image.complete || !image.naturalWidth) return false;
             const motion = playerMotion.get(player);
             const phase = motion?.phase || 0, t = animationTime;
             const actionAge = t - (motion?.actionAt ?? -10), hurtAge = t - (motion?.hurtAt ?? -10);
@@ -330,16 +332,16 @@
         },
         drawPassenger(ctx, x, y) {
             const image = atlases.player;
-            if (!image) return false;
+            if (!image || !image.complete || !image.naturalWidth) return false;
             const sw = image.naturalWidth / 4, sh = image.naturalHeight / 4;
             ctx.drawImage(image, sw + 1, 1, sw - 2, sh * 0.65, x - 9, y - 22, 18, 22);
             return true;
         },
         beginPlaneCrash(site) { planeFlights.set(site, animationTime); },
-        isPlaneAirborne(site) { const start = planeFlights.get(site); return !!atlases.aircraft && start !== undefined && animationTime - start < 3.2; },
+        isPlaneAirborne(site) { const start = planeFlights.get(site); return !!atlases.aircraft && atlases.aircraft.complete && atlases.aircraft.naturalWidth && start !== undefined && animationTime - start < 3.2; },
         drawPlane(ctx, site, camera) {
             const image = atlases.aircraft;
-            if (!image) return false;
+            if (!image || !image.complete || !image.naturalWidth) return false;
             const start = planeFlights.get(site);
             const age = start === undefined ? 100 : animationTime - start;
             const flight = age < 3.2;
@@ -434,7 +436,7 @@
         },
         drawResource(ctx, r, x, y) {
             const cell = resourceCells[r.depleted ? 'stump' : r.type];
-            if (atlases.resources && cell !== undefined) {
+            if (atlases.resources && atlases.resources.complete && atlases.resources.naturalWidth && cell !== undefined) {
                 const tree = r.type === 'tree' || r.type.includes('palm');
                 const w = r.depleted ? 28 : tree ? 72 : r.type === 'rock_node' ? 40 : 38;
                 const h = r.depleted ? 24 : tree ? 82 : 40;
@@ -503,7 +505,7 @@
             ctx.save();
             if (isFire) {
                 // Only the upper flame bends; the stone ring stays still.
-                if (id === 'campfire' && atlases.buildings) {
+                if (id === 'campfire' && atlases.buildings && atlases.buildings.complete && atlases.buildings.naturalWidth) {
                     drawWindSprite(ctx, 'buildings', buildingCells[id], x, y + h / 2, w, h, Math.sin(t * 11 + seed) * 1.8);
                 } else {
                     const image = sprite('world-building:' + id, c => building(c, id, true));
@@ -512,7 +514,7 @@
                 fireEffects(ctx, x, y, w, h, seed);
             } else {
                 const flexible = id === 'shelter' || id === 'garden';
-                if (flexible && atlases.buildings) drawWindSprite(ctx, 'buildings', buildingCells[id], x, y + h / 2, w, h, windAt(state.x ?? x, state.y ?? y) * 0.7);
+                if (flexible && atlases.buildings && atlases.buildings.complete && atlases.buildings.naturalWidth) drawWindSprite(ctx, 'buildings', buildingCells[id], x, y + h / 2, w, h, windAt(state.x ?? x, state.y ?? y) * 0.7);
                 else if (!atlasSprite(ctx, 'buildings', buildingCells[id], x - w / 2, y - h / 2, w, h)) {
                     const image = sprite('world-building:' + id, c => building(c, id, true));
                     ctx.drawImage(image, x - w / 2, y - h / 2, w, h);
@@ -543,13 +545,15 @@
             ctx.restore();
         },
         terrain(ctx, type, x, y, size, variant, tileX = 0, tileY = 0) {
-            if (atlases.terrain && type >= 0 && type <= 5) {
+            if (atlases.terrain && atlases.terrain.complete && atlases.terrain.naturalWidth && type >= 0 && type <= 5) {
                 const patch = terrainPatch(type);
-                const sx = ((tileX % 8) + 8) % 8 * 32;
-                const sy = ((tileY % 8) + 8) % 8 * 32;
-                if (type < 2) drawWaterPatch(ctx, patch, sx + animationTime * (type === 0 ? 3 : 1.8), sy + animationTime * 1.3, x, y, size);
-                else ctx.drawImage(patch, sx, sy, 32, 32, x, y, size + 0.5, size + 0.5);
-                return;
+                if (patch) {
+                    const sx = ((tileX % 8) + 8) % 8 * 32;
+                    const sy = ((tileY % 8) + 8) % 8 * 32;
+                    if (type < 2) drawWaterPatch(ctx, patch, sx + animationTime * (type === 0 ? 3 : 1.8), sy + animationTime * 1.3, x, y, size);
+                    else ctx.drawImage(patch, sx, sy, 32, 32, x, y, size + 0.5, size + 0.5);
+                    return;
+                }
             }
             const key = `terrain:${type}:${variant}`;
             const image = sprite(key, c => {
