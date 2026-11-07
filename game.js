@@ -2087,14 +2087,13 @@ class Game {
         // Mouse clicks are reserved for firearms, preventing accidental bare-hand
         // attacks while navigating or using the interface.
         if (allowMiss && !isGun) {
-            if (now - this.lastAttackAt > 900) {
-                this.lastAttackAt = now;
-                this.showNotification('Екіпіруйте пістолет або автомат у інвентарі (I).', 'warning');
-            }
             return;
         }
         if (!item && !allowMiss) {
-            this.showNotification('Спочатку екіпіруйте зброю в інвентарі.', 'warning');
+            if (now - this.lastAttackAt > 1500) {
+                this.lastAttackAt = now;
+                this.showNotification('Спочатку екіпіруйте зброю в інвентарі.', 'warning');
+            }
             return;
         }
         const range = isGun ? item.range : (this.player.equippedTool === 'spear' ? 72 : 48);
@@ -2541,6 +2540,16 @@ class Game {
     showNotification(msg, type='info') {
         let area = document.getElementById('notification-area');
         if (!area) return;
+
+        // Anti-spam debouncing: do not duplicate consecutive messages, and limit to 4 banners
+        if (area.children.length > 0) {
+            const last = area.children[area.children.length - 1];
+            if (last && last.innerText === msg) return;
+            while (area.children.length >= 4) {
+                area.removeChild(area.children[0]);
+            }
+        }
+
         let d = document.createElement('div');
         d.className = 'notification';
         

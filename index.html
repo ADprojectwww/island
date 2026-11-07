@@ -76,6 +76,26 @@
     <!-- Game Container -->
     <div id="game-container" class="hidden">
         <canvas id="game-canvas"></canvas>
+        <div id="sanity-vignette"></div>
+        <div id="underwater-overlay"></div>
+        
+        <!-- Boss Health HUD -->
+        <div id="boss-hud">
+            <div id="boss-hud-header">
+                <span id="boss-name">👑 Бос</span>
+                <span id="boss-hp-text">500 / 500 HP</span>
+            </div>
+            <div id="boss-bar-bg"><div id="boss-bar-fill"></div></div>
+        </div>
+
+        <!-- Diving HUD -->
+        <div id="diving-hud">
+            <span>🤿 Глибина: <b id="diving-depth">15м</b></span>
+            <span>Кисень O₂:</span>
+            <div id="oxygen-bar-bg"><div id="oxygen-bar-fill"></div></div>
+            <span id="oxygen-text">100с</span>
+            <button id="btn-surface" style="background:#0284C7; border:none; color:#fff; padding:4px 10px; border-radius:12px; cursor:pointer; font-weight:bold;">Виринути</button>
+        </div>
 
         <!-- Top HUD -->
         <div id="hud-top">
@@ -105,6 +125,11 @@
                     <div class="stat-bar"><div id="hud-energy" class="stat-fill energy-fill"></div></div>
                     <span id="hud-energy-text" class="stat-text">100/100</span>
                 </div>
+                <div class="stat-container" title="Психіка">
+                    <span class="stat-icon">🧠</span>
+                    <div class="stat-bar"><div id="hud-sanity" class="stat-fill sanity-fill" style="width:100%;"></div></div>
+                    <span id="hud-sanity-text" class="stat-text">100/100</span>
+                </div>
             </div>
         </div>
 
@@ -116,6 +141,9 @@
             <button class="side-btn" id="btn-toggle-map" title="Карта (M)">🗺️</button>
             <button class="side-btn" id="btn-toggle-quests" title="Завдання (Q)">📜</button>
             <button class="side-btn" id="btn-toggle-companions" title="Компаньйони (K)">🐕</button>
+            <button class="side-btn" id="btn-toggle-radio" title="Радіосканер (R)">📻</button>
+            <button class="side-btn" id="btn-toggle-boat" title="Човен (U)">⛵</button>
+            <button class="side-btn" id="btn-toggle-lore" title="Таємниці літака (L)">📖</button>
         </div>
 
         <!-- Inventory Panel -->
@@ -317,5 +345,6 @@
     <script src="game.js"></script>
     <script src="expansion.js"></script>
     <script src="viral-fog.js"></script>
+    <script src="island-mega-expansion.js"></script>
 </body>
 </html>

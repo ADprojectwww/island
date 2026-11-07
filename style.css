@@ -1007,3 +1007,203 @@ body.ui-small .panel, body.ui-small .game-panel { transform: translate(-50%, -50
 
 body.ui-large { font-size: 1.15rem; }
 body.ui-large .panel, body.ui-large .game-panel { transform: translate(-50%, -50%) scale(1.15); }
+
+
+/* -------------------------------------
+ * MEGA EXPANSION: 11 NEW SYSTEMS STYLES
+ * ------------------------------------- */
+
+/* Sanity Bar */
+.sanity-fill {
+    background: linear-gradient(90deg, #7C3AED, #A78BFA) !important;
+}
+
+/* Sanity Vignette for Low Sanity (<40) */
+#sanity-vignette {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 25;
+    box-shadow: inset 0 0 100px rgba(109, 40, 217, 0.4);
+    opacity: 0;
+    transition: opacity 0.5s ease;
+}
+
+/* Underwater Overlay */
+#underwater-overlay {
+    position: absolute;
+    top: 0; left: 0; width: 100%; height: 100%;
+    pointer-events: none;
+    z-index: 26;
+    background: radial-gradient(circle, rgba(6, 182, 212, 0.25) 0%, rgba(15, 23, 42, 0.65) 100%);
+    display: none;
+}
+
+/* Boss Health Bar HUD */
+#boss-hud {
+    position: absolute;
+    top: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 480px;
+    background: rgba(15, 23, 42, 0.92);
+    border: 2px solid #EF4444;
+    border-radius: 12px;
+    padding: 8px 16px;
+    box-shadow: 0 4px 20px rgba(239, 68, 68, 0.35);
+    z-index: 50;
+    display: none;
+    flex-direction: column;
+    gap: 4px;
+    animation: bossPulse 2s infinite alternate;
+}
+@keyframes bossPulse {
+    0% { border-color: #EF4444; box-shadow: 0 0 10px rgba(239, 68, 68, 0.4); }
+    100% { border-color: #FBBF24; box-shadow: 0 0 20px rgba(251, 191, 36, 0.6); }
+}
+#boss-hud-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: bold;
+    font-size: 1rem;
+    color: #F87171;
+}
+#boss-bar-bg {
+    width: 100%;
+    height: 14px;
+    background: rgba(0,0,0,0.6);
+    border-radius: 7px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+#boss-bar-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #DC2626, #F97316);
+    transition: width 0.2s ease;
+}
+
+/* Diving HUD */
+#diving-hud {
+    position: absolute;
+    bottom: 90px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(8, 47, 73, 0.9);
+    border: 2px solid #38BDF8;
+    border-radius: 24px;
+    padding: 8px 20px;
+    color: #E0F2FE;
+    display: none;
+    align-items: center;
+    gap: 15px;
+    z-index: 45;
+    box-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
+}
+#oxygen-bar-bg {
+    width: 180px;
+    height: 12px;
+    background: rgba(0,0,0,0.5);
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+#oxygen-bar-fill {
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, #0284C7, #38BDF8);
+    transition: width 0.3s ease;
+}
+
+/* Radio Dialog (CRT Monitor Style) */
+#panel-radio {
+    width: 460px;
+    background: #061A0E;
+    border: 3px solid #10B981;
+    box-shadow: 0 0 25px rgba(16, 185, 129, 0.3), inset 0 0 15px rgba(16, 185, 129, 0.2);
+    color: #34D399;
+    font-family: 'Courier New', monospace;
+}
+#panel-radio h2 {
+    color: #10B981;
+    text-shadow: 0 0 8px #10B981;
+}
+.radio-crt {
+    background: #020C06;
+    border: 1px solid #059669;
+    border-radius: 8px;
+    padding: 14px;
+    min-height: 120px;
+    margin-bottom: 15px;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.8);
+    line-height: 1.5;
+}
+.radio-slider-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.radio-slider {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 10px;
+    background: #064E3B;
+    border-radius: 5px;
+    outline: none;
+}
+.radio-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 22px;
+    height: 22px;
+    background: #34D399;
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 0 10px #34D399;
+}
+
+/* Boat Upgrades Modal */
+#panel-boat {
+    width: 480px;
+    background: rgba(20, 30, 45, 0.96);
+    border: 2px solid #38BDF8;
+}
+.boat-upgrade-card {
+    background: rgba(255,255,255,0.05);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 8px;
+    padding: 10px 14px;
+    margin-bottom: 10px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+.boat-upgrade-card.installed {
+    border-color: #10B981;
+    background: rgba(16, 185, 129, 0.1);
+}
+
+/* Lore Dialog (Journal Style) */
+#panel-lore {
+    width: 520px;
+    background: #1C1917;
+    border: 2px solid #D97706;
+    color: #FDE68A;
+}
+#panel-lore h2 {
+    color: #F59E0B;
+}
+.lore-entry {
+    background: rgba(0,0,0,0.35);
+    border: 1px solid rgba(217, 119, 6, 0.3);
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 10px;
+    line-height: 1.6;
+}
+.lore-title {
+    font-weight: bold;
+    color: #FBBF24;
+    margin-bottom: 4px;
+}
