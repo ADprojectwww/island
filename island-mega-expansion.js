@@ -46,7 +46,24 @@
             'black_box_1':      { id:'black_box_1',      name:'Чорна скринька літака',   icon:'blackbox',      category:'resource', maxStack:1,  description:'Запис переговорів пілотів рейсу 404' },
             'pilot_diary':      { id:'pilot_diary',      name:'Щоденник капітана',       icon:'pilotlog',      category:'resource', maxStack:1,  description:'Записи про дивну електромагнітну аномалію' },
             'passenger_letter': { id:'passenger_letter', name:'Лист пасажира',           icon:'letter',        category:'resource', maxStack:1,  description:'Таємниче повідомлення про схований бункер' },
-            'scientist_notes':  { id:'scientist_notes',  name:'Записки експедиції',      icon:'notes',         category:'resource', maxStack:1,  description:'Дослідження острова-привида та вірусного туману' }
+            'scientist_notes':  { id:'scientist_notes',  name:'Записки експедиції',      icon:'notes',         category:'resource', maxStack:1,  description:'Дослідження острова-привида та вірусного туману' },
+
+            // Інструменти копання та ресурси землі
+            'shovel':            { id:'shovel',            name:'Кам\'яна лопата',        icon:'shovel',        category:'tool',     toolType:'shovel', maxStack:1, description:'Дозволяє копати землю [E/клік], добувати глину, пісок, черв\'яків та бункери' },
+            'clay':              { id:'clay',              name:'Глина',                  icon:'clay',          category:'resource', maxStack:20, description:'Пластична глина для кам\'яних стін та цегли' },
+            'sand':              { id:'sand',              name:'Будівельний пісок',      icon:'sand',          category:'resource', maxStack:20, description:'Пісок для фундаментів та розчину' },
+            'worm':              { id:'worm',              name:'Дощовий черв\'як',       icon:'worm',          category:'food',     maxStack:15, description:'Живий черв\'як для риболовлі, викопаний із землі', effects:{hunger:2} },
+
+            // Модульне будівництво (хати, бункери, стіни, підлога, дах)
+            'stick_wall_item':   { id:'stick_wall_item',   name:'Стіна з палиць',         icon:'b_stick_wall',  category:'building', maxStack:20, placeable:'stick_wall',  description:'Легка стіна з переплетених гілок' },
+            'stone_wall_item':   { id:'stone_wall_item',   name:'Кам\'яна стіна',         icon:'b_stone_wall',  category:'building', maxStack:20, placeable:'stone_wall',  description:'Міцна стіна з тесаного каменю та глини' },
+            'stick_door_item':   { id:'stick_door_item',   name:'Двері з палиць',         icon:'b_stick_door',  category:'building', maxStack:5,  placeable:'stick_door',  description:'Двері для входу. Відкриваються на [E]' },
+            'stone_door_item':   { id:'stone_door_item',   name:'Кам\'яні двері',         icon:'b_stone_door',  category:'building', maxStack:5,  placeable:'stone_door',  description:'Важкі захисні двері для кам\'яного бункера [E]' },
+            'wood_floor_item':   { id:'wood_floor_item',   name:'Дерев\'яна підлога',     icon:'b_wood_floor',  category:'building', maxStack:20, placeable:'wood_floor',  description:'Настил підлоги. Можна будувати стіни поверх' },
+            'stone_floor_item':  { id:'stone_floor_item',  name:'Кам\'яний фундамент',    icon:'b_stone_floor', category:'building', maxStack:20, placeable:'stone_floor', description:'Кам\'яна плитка для підлоги та бункера' },
+            'thatched_roof_item':{ id:'thatched_roof_item',name:'Солом\'яний дах',        icon:'b_roof',        category:'building', maxStack:20, placeable:'thatched_roof',description:'Покрівля з листя, що захищає від дощу' },
+            'bunker_hatch_item': { id:'bunker_hatch_item', name:'Люк підземного бункера',icon:'b_hatch',       category:'building', maxStack:2,  placeable:'bunker_hatch', description:'Вхід у ваш власний підземний бункер [E]' },
+            'leaf_bed_item':     { id:'leaf_bed_item',     name:'Ліжко з листя',          icon:'b_bed',         category:'building', maxStack:2,  placeable:'leaf_bed',    description:'Затишне ліжко. Дозволяє поспати [E] і пропустити ніч' }
         };
         Object.assign(window.ITEM_DB, megaItems);
     }
@@ -70,7 +87,19 @@
             'spiked_moat_item':  { id:'spiked_moat_item',  name:'Рів із кілками',       result:{id:'spiked_moat_item',count:2},  materials:[{id:'branch',count:8},{id:'stone',count:4}],                                        requires:null },
             'wind_turbine_item': { id:'wind_turbine_item', name:'Вітрогенератор',       result:{id:'wind_turbine_item',count:1}, materials:[{id:'metal_scrap',count:8},{id:'electronics',count:3},{id:'plank',count:4}],     requires:'workbench' },
             'water_wheel_item':  { id:'water_wheel_item',  name:'Гідроколесо',          result:{id:'water_wheel_item',count:1},  materials:[{id:'plank',count:10},{id:'metal_scrap',count:4},{id:'rope',count:3}],            requires:'workbench' },
-            'diving_bell_item':  { id:'diving_bell_item',  name:'Водолазний дзвін',     result:{id:'diving_bell_item',count:1},  materials:[{id:'metal_scrap',count:8},{id:'glass_shard',count:4},{id:'rope',count:4}],      requires:'workbench' }
+            'diving_bell_item':  { id:'diving_bell_item',  name:'Водолазний дзвін',     result:{id:'diving_bell_item',count:1},  materials:[{id:'metal_scrap',count:8},{id:'glass_shard',count:4},{id:'rope',count:4}],      requires:'workbench' },
+
+            // Рецепти копання та модульного будівництва
+            'shovel':            { id:'shovel',            name:'Кам\'яна лопата',      result:{id:'shovel',count:1},            materials:[{id:'branch',count:3},{id:'stone',count:2},{id:'rope',count:1}],                 requires:null },
+            'stick_wall_item':   { id:'stick_wall_item',   name:'Стіна з палиць',       result:{id:'stick_wall_item',count:1},   materials:[{id:'branch',count:4},{id:'fiber',count:2}],                                       requires:null },
+            'stone_wall_item':   { id:'stone_wall_item',   name:'Кам\'яна стіна',       result:{id:'stone_wall_item',count:1},   materials:[{id:'stone',count:4},{id:'clay',count:2}],                                         requires:null },
+            'stick_door_item':   { id:'stick_door_item',   name:'Двері з палиць',       result:{id:'stick_door_item',count:1},   materials:[{id:'branch',count:5},{id:'rope',count:1}],                                        requires:null },
+            'stone_door_item':   { id:'stone_door_item',   name:'Кам\'яні двері',       result:{id:'stone_door_item',count:1},   materials:[{id:'stone',count:4},{id:'metal_scrap',count:2}],                                  requires:'workbench' },
+            'wood_floor_item':   { id:'wood_floor_item',   name:'Дерев\'яна підлога',   result:{id:'wood_floor_item',count:1},   materials:[{id:'branch',count:3},{id:'wood',count:1}],                                        requires:null },
+            'stone_floor_item':  { id:'stone_floor_item',  name:'Кам\'яний фундамент',  result:{id:'stone_floor_item',count:1},  materials:[{id:'stone',count:3},{id:'sand',count:1}],                                         requires:null },
+            'thatched_roof_item':{ id:'thatched_roof_item',name:'Солом\'яний дах',      result:{id:'thatched_roof_item',count:1},materials:[{id:'fiber',count:4},{id:'branch',count:2}],                                       requires:null },
+            'bunker_hatch_item': { id:'bunker_hatch_item', name:'Люк підземного бункера',result:{id:'bunker_hatch_item',count:1}, materials:[{id:'stone',count:8},{id:'wood',count:6},{id:'metal_scrap',count:4}],                requires:'workbench' },
+            'leaf_bed_item':     { id:'leaf_bed_item',     name:'Ліжко з листя',        result:{id:'leaf_bed_item',count:1},     materials:[{id:'fiber',count:6},{id:'branch',count:4},{id:'wood',count:2}],                  requires:null }
         };
         Object.assign(window.RECIPE_DB, megaRecipes);
     }
@@ -83,7 +112,18 @@
             'spiked_moat':   { id:'spiked_moat',   name:'Рів із кілками',    width:32, height:32, passable:true,  maxHealth:200, description:'Сповільнює і ранить ворогів',  func:'trap' },
             'wind_turbine':  { id:'wind_turbine',  name:'Вітрогенератор',    width:44, height:44, passable:false, maxHealth:200, description:'Генерує 15-35 Вт енергії',     func:'power_wind' },
             'water_wheel':   { id:'water_wheel',   name:'Гідроколесо',       width:44, height:44, passable:false, maxHealth:200, description:'Генерує 12 Вт від хвиль води', func:'power_hydro' },
-            'diving_bell':   { id:'diving_bell',   name:'Водолазний дзвін',  width:48, height:48, passable:false, maxHealth:300, description:'Вхід у глибоководний режим',    func:'dive' }
+            'diving_bell':   { id:'diving_bell',   name:'Водолазний дзвін',  width:48, height:48, passable:false, maxHealth:300, description:'Вхід у глибоководний режим',    func:'dive' },
+
+            // Модульне будівництво (хати, бункери, стіни, підлога, дах)
+            'stick_wall':   { id:'stick_wall',   name:'Стіна з палиць',        width:32, height:32, passable:false, maxHealth:180, description:'Легка стіна з гілок', cost:[{id:'branch',count:4},{id:'fiber',count:2}] },
+            'stone_wall':   { id:'stone_wall',   name:'Кам\'яна стіна',        width:32, height:32, passable:false, maxHealth:500, description:'Міцна стіна з каменю та глини', cost:[{id:'stone',count:4},{id:'clay',count:2}] },
+            'stick_door':   { id:'stick_door',   name:'Двері з палиць',        width:32, height:32, passable:true,  maxHealth:180, description:'Двері. Відкриваються на [E]', cost:[{id:'branch',count:5},{id:'rope',count:1}], func:'door' },
+            'stone_door':   { id:'stone_door',   name:'Кам\'яні двері',        width:32, height:32, passable:true,  maxHealth:450, description:'Бронедвері для бункера [E]', cost:[{id:'stone',count:4},{id:'metal_scrap',count:2}], func:'door' },
+            'wood_floor':   { id:'wood_floor',   name:'Дерев\'яна підлога',    width:32, height:32, passable:true,  isFloor:true, maxHealth:120, description:'Дерев\'яний настил підлоги', cost:[{id:'branch',count:3},{id:'wood',count:1}] },
+            'stone_floor':  { id:'stone_floor',  name:'Кам\'яний фундамент',   width:32, height:32, passable:true,  isFloor:true, maxHealth:300, description:'Кам\'яна основа підлоги бункера', cost:[{id:'stone',count:3},{id:'sand',count:1}] },
+            'thatched_roof':{ id:'thatched_roof',name:'Солом\'яний дах',       width:32, height:32, passable:true,  isRoof:true,  maxHealth:150, description:'Покрівля від дощу', cost:[{id:'fiber',count:4},{id:'branch',count:2}] },
+            'bunker_hatch': { id:'bunker_hatch', name:'Люк підземного бункера',width:36, height:36, passable:false, maxHealth:600, description:'Вхід у підземний бункер [E]', cost:[{id:'stone',count:8},{id:'wood',count:6},{id:'metal_scrap',count:4}], func:'bunker_hatch' },
+            'leaf_bed':     { id:'leaf_bed',     name:'Ліжко з листя',         width:40, height:26, passable:false, maxHealth:120, description:'Відпочинок і пропуск ночі [E]', cost:[{id:'fiber',count:6},{id:'branch',count:4},{id:'wood',count:2}], func:'bed' }
         };
         Object.assign(window.BUILDING_DB, megaBuildings);
     }
@@ -272,12 +312,32 @@
             this.tsunamiActive = false;
             this.tsunamiTimer = 0;
             this.meteorCraters = [];
+
+            // 12. Підземний бункер гравця та копання
+            this.inPlayerBunker = false;
+            this.activeBunkerBuilding = null;
+            this.bunkerStorage = [
+                { id: 'canned_food', count: 3 },
+                { id: 'water', count: 2 },
+                { id: 'bandage', count: 2 }
+            ];
+            this.dugHoles = [];
         }
 
         // ─── ОНОВЛЕННЯ СИСТЕМ (Update Loop) ──────────────────────
         update(dt) {
             const p = this.game.player;
             if (!p) return;
+
+            // Якщо гравець у власному підземному бункері — обмеження кімнатою та регенерація
+            if (this.inPlayerBunker) {
+                p.x = Math.max(130, Math.min(370, p.x));
+                p.y = Math.max(140, Math.min(330, p.y));
+                this.sanity = Math.min(this.maxSanity, this.sanity + 2.0 * dt);
+                p.energy = Math.min(p.maxEnergy, p.energy + 0.5 * dt);
+                this.updateHUD();
+                return;
+            }
 
             this.updateSanity(dt, p);
             this.updatePhantomIsland(dt, p);
@@ -830,6 +890,193 @@
             MegaAudio.playMorse();
         }
 
+        // 12. Копання землі та видобуток ресурсів
+        dig(x, y) {
+            const p = this.game.player;
+            if (!p) return;
+            if (p.energy < 3) {
+                this.game.showNotification('Втомилися. Немає енергії для копання!', 'warning');
+                return;
+            }
+            p.energy = Math.max(0, p.energy - 3);
+            if (window.soundSystem) window.soundSystem.playMine();
+            MegaAudio.playTone(220, 0.12, 'sawtooth', 0.2);
+            if (this.game.spawnParticles) this.game.spawnParticles(p.x, p.y, '#8B5A2B', 15);
+
+            const inv = p.inventory;
+            const drops = [];
+            const r = Math.random();
+            if (r < 0.65) { inv.addItem('clay', 1 + Math.floor(Math.random() * 2)); drops.push('глину'); }
+            if (Math.random() < 0.55) { inv.addItem('sand', 1 + Math.floor(Math.random() * 2)); drops.push('пісок'); }
+            if (Math.random() < 0.40) { inv.addItem('stone', 1); drops.push('каміння'); }
+            if (Math.random() < 0.35) { inv.addItem('worm', 1); drops.push('черв\'яка'); }
+            if (Math.random() < 0.10) {
+                const treasures = ['gold_coin', 'metal_scrap', 'bunker_key_fragment'];
+                const found = treasures[Math.floor(Math.random() * treasures.length)];
+                inv.addItem(found, 1);
+                drops.push(`скарб (${window.ITEM_DB[found]?.name || found})`);
+                MegaAudio.playSonar();
+            }
+
+            p.xp = (p.xp || 0) + 10;
+            if (drops.length) {
+                this.game.showNotification(`⛏️ Викопано: ${drops.join(', ')}! (+10 XP)`, 'success');
+            } else {
+                this.game.showNotification('⛏️ Ви поглибили яму. Продовжуйте копати!', 'info');
+            }
+        }
+
+        // 13. Підземний бункер та житло
+        enterPlayerBunker(hatch) {
+            const p = this.game.player;
+            if (!p) return;
+            p.surfaceX = p.x;
+            p.surfaceY = p.y;
+            this.inPlayerBunker = true;
+            this.activeBunkerBuilding = hatch;
+            p.x = 250;
+            p.y = 220;
+            MegaAudio.playTone(100, 0.35, 'square', 0.25);
+            this.game.showNotification('🕳️ Ви спустилися у свій підземний бункер. Тут тихо та безпечно!', 'success');
+        }
+
+        exitPlayerBunker() {
+            const p = this.game.player;
+            if (!p) return;
+            this.inPlayerBunker = false;
+            p.x = p.surfaceX || (this.activeBunkerBuilding ? this.activeBunkerBuilding.x + 32 : p.x);
+            p.y = p.surfaceY || (this.activeBunkerBuilding ? this.activeBunkerBuilding.y + 32 : p.y);
+            this.activeBunkerBuilding = null;
+            MegaAudio.playTone(400, 0.15, 'sine', 0.2);
+            this.game.showNotification('☀️ Ви піднялися на поверхню острова.', 'info');
+        }
+
+        sleepInBed() {
+            const p = this.game.player;
+            if (!p) return;
+            const isNight = this.game.timeSystem && this.game.timeSystem.isNight();
+            if (!isNight && p.energy > 45) {
+                this.game.showNotification('🛌 Ви ще не втомилися. Спати можна вночі або при низькій енергії.', 'info');
+                return;
+            }
+
+            // Перемотка ночі на 06:00
+            if (this.game.timeSystem) {
+                this.game.timeSystem.time = 6.0;
+                this.game.timeSystem.day = (this.game.timeSystem.day || 1) + 1;
+            }
+            p.energy = Math.min(p.maxEnergy, p.energy + 60);
+            p.health = Math.min(p.maxHealth, p.health + 25);
+            this.sanity = Math.min(this.maxSanity, this.sanity + 40);
+            MegaAudio.playTone(523, 0.5, 'sine', 0.2);
+            this.game.showNotification('😴 Ви міцно поспали. Настав новий ранок! Енергію та психіку відновлено.', 'success');
+            if (window.updateHUD) window.updateHUD();
+        }
+
+        toggleDoor(door) {
+            door.isOpen = !door.isOpen;
+            door.passable = door.isOpen;
+            MegaAudio.playTone(door.isOpen ? 440 : 220, 0.1, 'triangle', 0.2);
+            this.game.showNotification(door.isOpen ? '🚪 Двері відчинено' : '🚪 Двері зачинено', 'info');
+        }
+
+        renderBunkerRoom(ctx) {
+            const time = performance.now() / 1000;
+            ctx.fillStyle = '#070A10';
+            ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+
+            const rw = 320, rh = 240;
+            const rx = (ctx.canvas.width - rw) / 2;
+            const ry = (ctx.canvas.height - rh) / 2;
+
+            // Кам'яні стіни підземелля
+            ctx.fillStyle = '#1E293B';
+            ctx.fillRect(rx - 16, ry - 16, rw + 32, rh + 32);
+            ctx.strokeStyle = '#334155'; ctx.lineWidth = 4;
+            ctx.strokeRect(rx - 16, ry - 16, rw + 32, rh + 32);
+
+            // Підлога з дощок
+            ctx.fillStyle = '#78350F';
+            ctx.fillRect(rx, ry, rw, rh);
+            ctx.strokeStyle = '#451A03'; ctx.lineWidth = 1;
+            for (let py = ry + 20; py < ry + rh; py += 20) {
+                ctx.beginPath(); ctx.moveTo(rx, py); ctx.lineTo(rx + rw, py); ctx.stroke();
+            }
+
+            // Балки перекриття стелі
+            ctx.fillStyle = '#451A03';
+            ctx.fillRect(rx, ry, rw, 10);
+            ctx.fillRect(rx, ry + rh - 10, rw, 10);
+            ctx.fillRect(rx, ry, 10, rh);
+            ctx.fillRect(rx + rw - 10, ry, 10, rh);
+
+            // Драбина виходу нагору (по центру вгорі)
+            ctx.fillStyle = '#B45309';
+            ctx.fillRect(rx + rw/2 - 14, ry, 28, 40);
+            ctx.strokeStyle = '#FDE047'; ctx.lineWidth = 2;
+            for (let ly = ry + 8; ly < ry + 36; ly += 8) {
+                ctx.beginPath(); ctx.moveTo(rx + rw/2 - 12, ly); ctx.lineTo(rx + rw/2 + 12, ly); ctx.stroke();
+            }
+            ctx.fillStyle = '#FDE047';
+            ctx.font = 'bold 12px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('[E] Вийти на острів', rx + rw/2, ry + 54);
+
+            // Підземне ліжко (ліворуч внизу)
+            ctx.fillStyle = '#78350F';
+            ctx.fillRect(rx + 20, ry + rh - 60, 64, 44);
+            ctx.fillStyle = '#15803D';
+            ctx.fillRect(rx + 24, ry + rh - 56, 56, 36);
+            ctx.fillStyle = '#FEF08A';
+            ctx.fillRect(rx + 26, ry + rh - 54, 16, 16);
+            ctx.fillStyle = '#86EFAC';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillText('[E] Спати', rx + 52, ry + rh - 66);
+
+            // Скриня бункера (праворуч внизу)
+            ctx.fillStyle = '#B45309';
+            ctx.fillRect(rx + rw - 64, ry + rh - 50, 44, 34);
+            ctx.fillStyle = '#F59E0B';
+            ctx.fillRect(rx + rw - 64, ry + rh - 38, 44, 6);
+            ctx.fillStyle = '#FBBF24';
+            ctx.font = 'bold 11px sans-serif';
+            ctx.fillText('[E] Сховище', rx + rw - 42, ry + rh - 56);
+
+            // Підвісний ліхтар по центру
+            const lx = rx + rw/2;
+            const ly = ry + rh/2;
+            ctx.strokeStyle = '#475569'; ctx.lineWidth = 1.5;
+            ctx.beginPath(); ctx.moveTo(lx, ry); ctx.lineTo(lx, ly - 20); ctx.stroke();
+
+            // Тепле сяйво лампи
+            const grad = ctx.createRadialGradient(lx, ly, 10, lx, ly, 150);
+            grad.addColorStop(0, 'rgba(254, 240, 138, 0.45)');
+            grad.addColorStop(0.5, 'rgba(245, 158, 11, 0.15)');
+            grad.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = grad;
+            ctx.beginPath(); ctx.arc(lx, ly, 150, 0, Math.PI * 2); ctx.fill();
+
+            // Лампа
+            ctx.fillStyle = '#FEF08A';
+            ctx.beginPath(); ctx.arc(lx, ly - 14, 8 + Math.sin(time * 4) * 0.8, 0, Math.PI * 2); ctx.fill();
+
+            // Відмальовування гравця у кімнаті бункера
+            const p = this.game.player;
+            if (p) {
+                const px = rx + Math.max(30, Math.min(rw - 30, (p.x - 130) * (rw / 240)));
+                const py = ry + Math.max(30, Math.min(rh - 30, (p.y - 140) * (rh / 190)));
+                ctx.fillStyle = '#0284C7';
+                ctx.beginPath(); ctx.arc(px, py, 14, 0, Math.PI * 2); ctx.fill();
+                ctx.fillStyle = '#FCD34D';
+                ctx.beginPath(); ctx.arc(px, py - 10, 7, 0, Math.PI * 2); ctx.fill();
+            }
+
+            ctx.fillStyle = '#38BDF8';
+            ctx.font = 'bold 15px sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillText('🛡️ ВАШ ПІДЗЕМНИЙ БУНКЕР (БЕЗПЕЧНА ЗОНА)', rx + rw/2, ry - 24);
+        }
+
         updateHUD() {
             // Оновлення індикатора психіки
             const bar = document.getElementById('hud-sanity');
@@ -840,6 +1087,12 @@
 
         // ─── ВІДМАЛЬОВУВАННЯ НА CANVAS (Render) ──────────────────
         render(ctx, camera) {
+            // Якщо гравець у власному підземному бункері — показуємо затишний бункер
+            if (this.inPlayerBunker) {
+                this.renderBunkerRoom(ctx);
+                return;
+            }
+
             const time = performance.now() / 1000;
 
             // 1. Острів-привид (сяйво)
@@ -970,14 +1223,65 @@
             }
         };
 
-        // Патч взаємодії (Interaction: Boss attack / Chests / Diving / Meteor)
+        // Патч взаємодії (Interaction: Boss attack / Chests / Diving / Meteor / Digging / Bunker)
         const origInteract = Game.prototype.handleInteraction;
         Game.prototype.handleInteraction = function() {
             const p = this.player;
             const ms = this.megaSystem;
             if (!p || !ms) return origInteract ? origInteract.call(this) : undefined;
 
-            // Взаємодія з кратером метеорита
+            // 1. Якщо гравець всередині підземного бункера
+            if (ms.inPlayerBunker) {
+                // Вихід нагору біля драбини
+                if (Math.hypot(p.x - 250, p.y - 120) < 65) {
+                    ms.exitPlayerBunker();
+                    return;
+                }
+                // Ліжко в бункері
+                if (Math.hypot(p.x - 140, p.y - 260) < 65) {
+                    ms.sleepInBed();
+                    return;
+                }
+                // Сховище бункера
+                if (Math.hypot(p.x - 360, p.y - 260) < 65) {
+                    if (window.openChestUI) {
+                        window.openChestUI({ inventory: ms.bunkerStorage, type: 'chest', x: 360, y: 260 });
+                    }
+                    return;
+                }
+                return;
+            }
+
+            // 2. Взаємодія з будівлями гравця на поверхні
+            if (this.buildingSystem) {
+                // Люк у підземний бункер
+                const hatch = this.buildingSystem.buildings.find(b => b.type === 'bunker_hatch' && Math.hypot(b.x - p.x, b.y - p.y) < 55);
+                if (hatch) {
+                    ms.enterPlayerBunker(hatch);
+                    return;
+                }
+                // Двері
+                const door = this.buildingSystem.buildings.find(b => (b.type === 'stick_door' || b.type === 'stone_door') && Math.hypot(b.x - p.x, b.y - p.y) < 50);
+                if (door) {
+                    ms.toggleDoor(door);
+                    return;
+                }
+                // Ліжко з листя
+                const bed = this.buildingSystem.buildings.find(b => b.type === 'leaf_bed' && Math.hypot(b.x - p.x, b.y - p.y) < 55);
+                if (bed) {
+                    ms.sleepInBed();
+                    return;
+                }
+                // Водолазний дзвін
+                const bell = this.buildingSystem.buildings.find(b => b.type === 'diving_bell' && Math.hypot(b.x - p.x, b.y - p.y) < 60);
+                if (bell) {
+                    if (!ms.isDiving) ms.startDiving();
+                    else ms.surfaceDiving();
+                    return;
+                }
+            }
+
+            // 3. Метеоритні кратери
             for (let c of ms.meteorCraters) {
                 if (!c.mined && Math.hypot(p.x - c.x, p.y - c.y) < 45) {
                     c.mined = true;
@@ -989,25 +1293,27 @@
                 }
             }
 
-            // Взаємодія з водолазним дзвоном
-            if (this.buildingSystem) {
-                const bell = this.buildingSystem.buildings.find(b => b.type === 'diving_bell' && Math.hypot(b.x - p.x, b.y - p.y) < 60);
-                if (bell) {
-                    if (!ms.isDiving) ms.startDiving();
-                    else ms.surfaceDiving();
-                    return;
-                }
+            // 4. Якщо екіпіровано лопату — копаємо землю на [E]!
+            if (p.equippedTool && (p.equippedTool === 'shovel' || p.equippedTool === 'stone_shovel')) {
+                ms.dig(p.x, p.y);
+                return;
             }
 
             return origInteract.call(this);
         };
 
-        // Патч атаки гравця (Attack on Bosses)
+        // Патч атаки гравця (Attack on Bosses / Digging with Shovel)
         const origAttack = Game.prototype.attack;
         Game.prototype.attack = function(...args) {
             const p = this.player;
             const ms = this.megaSystem;
             if (p && ms) {
+                // Якщо тримаємо лопату — копаємо землю при кліку чи натисканні Space/F!
+                if (p.equippedTool && (p.equippedTool === 'shovel' || p.equippedTool === 'stone_shovel')) {
+                    ms.dig(p.x, p.y);
+                    window.GameTextures?.playerAction(p, 'swing');
+                    return;
+                }
                 // Перевіряємо удар по босу
                 for (let b of ms.bosses) {
                     if (b.active && Math.hypot(p.x - b.x, p.y - b.y) < 65) {
