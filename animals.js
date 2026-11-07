@@ -305,6 +305,8 @@ window.Animal = class Animal {
     draw(ctx, camera) {
         if (!camera.isVisible(this.x, this.y)) return;
 
+        if (window.GameTextures?.drawAnimal(ctx, this, camera)) return;
+
         const screenPos = camera.worldToScreen(this.x, this.y);
         ctx.save();
         ctx.translate(screenPos.x, screenPos.y);
@@ -315,7 +317,7 @@ window.Animal = class Animal {
         ctx.ellipse(0, this.height/3, this.width/2, this.height/4, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        const bounce = (this.state === 'wander' || this.state === 'flee' || this.state === 'attack') ? Math.sin(this.animFrame * Math.PI) * 2 : 0;
+        const bounce = (this.state === 'wander' || this.state === 'flee' || this.state === 'attack') ? Math.abs(Math.sin((this.animFrame + this.animTimer / 0.15) * Math.PI / 2)) * 2 : 0;
         ctx.translate(0, -bounce);
 
         // Flip horizontally if facing left
@@ -986,37 +988,41 @@ window.DogCompanion = class DogCompanion {
         if (!camera.isVisible(this.x, this.y)) return;
 
         const screenPos = camera.worldToScreen(this.x, this.y);
-        ctx.save();
-        ctx.translate(screenPos.x, screenPos.y);
-        ctx.scale(this.size, this.size);
+        const textured = window.GameTextures?.drawAnimal(ctx, this, camera, true);
+        if (!textured) {
+            ctx.save();
+            ctx.translate(screenPos.x, screenPos.y);
+            ctx.scale(this.size, this.size);
 
-        // Shadow
-        ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
-        ctx.beginPath();
-        ctx.ellipse(0, 8, 14, 6, 0, 0, Math.PI * 2);
-        ctx.fill();
+            // Shadow
+            ctx.fillStyle = 'rgba(0, 0, 0, 0.2)';
+            ctx.beginPath();
+            ctx.ellipse(0, 8, 14, 6, 0, 0, Math.PI * 2);
+            ctx.fill();
 
-        const bounce = (this.state === 'moving') ? Math.sin(this.animFrame * Math.PI) * 2 : 0;
-        ctx.translate(0, -bounce);
+            const bounce = (this.state === 'moving') ? Math.abs(Math.sin((this.animFrame + this.animTimer / 0.15) * Math.PI / 2)) * 2 : 0;
+            ctx.translate(0, -bounce);
 
-        if (this.direction === 1) {
-            ctx.scale(-1, 1);
-        }
+            if (this.direction === 1) {
+                ctx.scale(-1, 1);
+            }
 
-        // Use animal's dog drawing method
-        const dummyAnim = new Animal('wild_dog', 0, 0);
-        dummyAnim.direction = this.direction;
-        dummyAnim.animFrame = this.animFrame;
-        dummyAnim.animTimer = this.animTimer;
-        dummyAnim.state = (this.state === 'moving') ? 'wander' : 'idle';
+            // Use animal's dog drawing method
+            const dummyAnim = this._fallbackDog || (this._fallbackDog = Object.create(Animal.prototype));
+            dummyAnim.direction = this.direction;
+            dummyAnim.animFrame = this.animFrame;
+            dummyAnim.animTimer = this.animTimer;
+            dummyAnim.state = (this.state === 'moving') ? 'wander' : 'idle';
         
-        dummyAnim.drawDog(ctx, this.colorIndex, true);
+            dummyAnim.drawDog(ctx, this.colorIndex, true);
 
-        ctx.restore();
+            ctx.restore();
+
+        }
 
         // Draw nameplate
         ctx.save();
-        ctx.translate(screenPos.x, screenPos.y - 20 * this.size);
+        ctx.translate(screenPos.x, screenPos.y - 38 * this.size);
         ctx.fillStyle = 'white';
         ctx.strokeStyle = 'black';
         ctx.lineWidth = 2;
@@ -1034,7 +1040,7 @@ window.DogCompanion = class DogCompanion {
             ctx.stroke();
         }
         
-        if (this.command === 'rest') {
+        if (this.command === 'rest' && !textured) {
             ctx.fillStyle = 'white';
             ctx.font = '12px Arial';
             ctx.fillText('Z', 10, -15);

@@ -446,9 +446,11 @@
                 const pos = camera.worldToScreen(resource.x, resource.y);
                 if (resource.type === HERB_ID) {
                     ctx.save();
+                    const t = window.GameTextures?.time || 0;
+                    ctx.translate(Math.sin(t * 2 + resource.x * 0.03) * 1.2, 0);
                     ctx.fillStyle = '#BEF264';
                     ctx.shadowColor = '#A3E635';
-                    ctx.shadowBlur = 12;
+                    ctx.shadowBlur = 12 + Math.sin(t * 3 + resource.y * 0.02) * 3;
                     ctx.beginPath();
                     ctx.ellipse(pos.x, pos.y, 5, 10, 0, 0, Math.PI * 2);
                     ctx.fill();

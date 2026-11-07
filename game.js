@@ -399,6 +399,7 @@ class Player {
     }
     draw(ctx, camera) {
         if (this.inBoat) return;
+        if (window.GameTextures?.drawPlayer(ctx, this, camera)) return;
         let pos = camera.worldToScreen(this.x, this.y);
         ctx.save();
         ctx.translate(pos.x, pos.y);
@@ -664,7 +665,7 @@ class World {
         let res = this.resources.find(r => r.id === resourceId);
         if (!res || res.depleted) return { items: [], depleted: false, message: 'Ресурс порожній' };
 
-        let needsAxe = ['tree', 'palm'].includes(res.type);
+        let needsAxe = ['tree', 'palm', 'coconut_palm'].includes(res.type);
         if (needsAxe && toolType !== 'axe') {
             return { items: [], depleted: false, message: 'Потрібна сокира!' };
         }
@@ -715,7 +716,7 @@ class World {
         let endX = Math.min(this.width - 1, Math.ceil(bounds.right / this.tileSize));
         let endY = Math.min(this.height - 1, Math.ceil(bounds.bottom / this.tileSize));
         
-        let tTime = window.game ? window.game.timeSystem.totalTime : 0;
+        let tTime = window.game?.timeSystem?.totalTime || 0;
         let waveOffset = Math.sin(tTime) * 2;
 
         for (let y = startY; y <= endY; y++) {
@@ -727,6 +728,16 @@ class World {
                 let sx = px - camera.x + camera.width / 2;
                 let sy = py - camera.y + camera.height / 2;
 
+                if (window.GameTextures) {
+                    window.GameTextures.terrain(ctx, type, sx, sy, this.tileSize, (x * 37 + y * 13) % 4, x, y);
+                    if (type < 2) {
+                        window.GameTextures.waterSurface(ctx, type, sx, sy, this.tileSize, x, y, [
+                            this.getTile(x - 1,y) >= 2, this.getTile(x + 1,y) >= 2,
+                            this.getTile(x,y - 1) >= 2, this.getTile(x,y + 1) >= 2
+                        ]);
+                    }
+                    continue;
+                }
                 ctx.fillStyle = '#000';
                 switch(type) {
                     case 0: ctx.fillStyle = '#006994'; break;
@@ -768,9 +779,10 @@ class World {
     drawResources(ctx, camera) {
         for (let r of this.resources) {
             if (r.depleted) {
-                if (r.type === 'tree' || r.type === 'palm') {
+                if (r.type === 'tree' || r.type === 'palm' || r.type === 'coconut_palm') {
                     if (camera.isVisible(r.x, r.y)) {
                         let pos = camera.worldToScreen(r.x, r.y);
+                        if (window.GameTextures?.drawResource(ctx, r, pos.x, pos.y)) continue;
                         ctx.fillStyle = '#6B3410';
                         ctx.beginPath(); ctx.arc(pos.x, pos.y, 6, 0, Math.PI*2); ctx.fill();
                     }
@@ -779,6 +791,7 @@ class World {
             }
             if (!camera.isVisible(r.x, r.y)) continue;
             let pos = camera.worldToScreen(r.x, r.y);
+            if (window.GameTextures?.drawResource(ctx, r, pos.x, pos.y)) continue;
             ctx.save();
             ctx.translate(pos.x, pos.y);
             
@@ -834,18 +847,13 @@ class World {
             if (!camera.isVisible(item.x, item.y)) continue;
             let pos = camera.worldToScreen(item.x, item.y);
             
-            ctx.fillStyle = '#fff';
-            ctx.beginPath(); ctx.arc(pos.x, pos.y, 6, 0, Math.PI*2); ctx.fill();
-            ctx.strokeStyle = '#000'; ctx.lineWidth = 1; ctx.stroke();
-            
-            if (window.ITEM_DB && window.ITEM_DB[item.itemId]) {
-                let cat = window.ITEM_DB[item.itemId].category;
-                if (cat === 'food') ctx.fillStyle = '#E74C3C';
-                else if (cat === 'resource') ctx.fillStyle = '#8B4513';
-                else if (cat === 'tool') ctx.fillStyle = '#95A5A6';
-                else ctx.fillStyle = '#F1C40F';
-                ctx.beginPath(); ctx.arc(pos.x, pos.y, 4, 0, Math.PI*2); ctx.fill();
-            }
+            ctx.save();
+            ctx.fillStyle = 'rgba(20,35,28,0.25)';
+            ctx.beginPath(); ctx.ellipse(pos.x, pos.y + 8, 10, 4, 0, 0, Math.PI * 2); ctx.fill();
+            const t = window.GameTextures?.time || 0;
+            const bob = Math.sin(t * 2.4 + item.x * 0.03 + item.y * 0.02) * 1.6;
+            window.drawItemIcon(ctx, item.itemId, pos.x - 12, pos.y - 16 + bob, 24);
+            ctx.restore();
         }
     }
     serialize() {
@@ -1125,6 +1133,7 @@ class Game {
     }
     
     init() {
+        window.GameTextures?.resetAnimation();
         this.world = new World(this.worldWidth, this.worldHeight, this.tileSize);
         this.world.generate();
         
@@ -1315,6 +1324,7 @@ class Game {
     }
     
     update(dt) {
+        window.GameTextures?.advance(dt);
         this.input.updateMouseWorld(this.camera);
 
         // --- 1. Evacuation Timer & Waves ---
@@ -1440,8 +1450,8 @@ class Game {
                             const d = Math.hypot(z.x - spot.x, z.y - spot.y);
                             if (d < 140) {
                                 z.health -= 20 * dt;
-                                z.x += ((z.x - spot.x) / d) * 50 * dt;
-                                z.y += ((z.y - spot.y) / d) * 50 * dt;
+                                z.x += ((z.x - spot.x) / (d || 1)) * 50 * dt;
+                                z.y += ((z.y - spot.y) / (d || 1)) * 50 * dt;
                             }
                         }
                     }
@@ -1543,8 +1553,13 @@ class Game {
         
         if (this.animalManager) {
             this.animalManager.update(dt, this.player.x, this.player.y, this.world.tiles, this.world.tileSize, this.world.resources, this.buildingSystem ? this.buildingSystem.buildings : []);
+            if (window.GameTextures) {
+                for (const animal of this.animalManager.animals) window.GameTextures.observeAnimal(animal);
+                for (const dog of this.animalManager.dogs) window.GameTextures.observeAnimal(dog);
+            }
         }
         
+        window.GameTextures?.observePlayer(this.player);
         this.input.update(); 
         updateHUD();
     }
@@ -1625,7 +1640,7 @@ class Game {
             this.ctx.fillRect(pos.x + 12, pos.y - 12, 16, 24);
             this.ctx.fillStyle = '#1E293B';
             this.ctx.fillRect(pos.x - 52, pos.y - 6, 26, 12);
-            this.helicopter.rotorAngle = (this.helicopter.rotorAngle || 0) + 0.35;
+            this.helicopter.rotorAngle = (window.GameTextures?.time || 0) * 21;
             this.ctx.strokeStyle = '#94A3B8'; this.ctx.lineWidth = 4;
             this.ctx.beginPath();
             this.ctx.moveTo(pos.x + Math.cos(this.helicopter.rotorAngle) * 55, pos.y - 22 + Math.sin(this.helicopter.rotorAngle) * 8);
@@ -1735,7 +1750,8 @@ class Game {
     drawBoat() {
         if (!this.boat || !this.camera.isVisible(this.boat.x, this.boat.y, 80)) return;
         const pos = this.camera.worldToScreen(this.boat.x, this.boat.y);
-        const bob = Math.sin((this.systemsLoaded ? this.timeSystem.totalTime : 0) * 2.2) * 1.5;
+        const bob = Math.sin((window.GameTextures?.time || 0) * 2.2) * 1.5;
+        window.GameTextures?.drawWake(this.ctx, pos.x, pos.y, this.boat.heading || 0, this.player?.inBoat && this.player.moving);
         this.ctx.save();
         this.ctx.translate(pos.x, pos.y + bob);
         this.ctx.rotate(this.boat.heading || 0);
@@ -1746,9 +1762,9 @@ class Game {
         this.ctx.strokeStyle = '#3F2315'; this.ctx.lineWidth = 2; this.ctx.stroke();
         this.ctx.fillStyle = '#B8793E'; this.ctx.fillRect(-5, -37, 4, 34);
         this.ctx.fillStyle = '#F7E7C6';
-        this.ctx.beginPath(); this.ctx.moveTo(-2, -34); this.ctx.lineTo(20, -16); this.ctx.lineTo(-2, -5); this.ctx.closePath(); this.ctx.fill();
+        this.ctx.beginPath(); this.ctx.moveTo(-2, -34); this.ctx.quadraticCurveTo(11 + Math.sin((window.GameTextures?.time || 0) * 2.7) * 2, -27, 20, -16); this.ctx.quadraticCurveTo(7, -7, -2, -5); this.ctx.closePath(); this.ctx.fill();
         this.ctx.strokeStyle = '#D1B98B'; this.ctx.stroke();
-        if (this.player && this.player.inBoat) {
+        if (this.player && this.player.inBoat && !window.GameTextures?.drawPassenger(this.ctx, -11, -7)) {
             this.ctx.fillStyle = '#1565C0'; this.ctx.fillRect(-15, -8, 8, 11);
             this.ctx.fillStyle = '#FFB74D'; this.ctx.beginPath(); this.ctx.arc(-11, -12, 4, 0, Math.PI * 2); this.ctx.fill();
         }
@@ -1759,6 +1775,7 @@ class Game {
         if (!this.crashSites) return;
         const time = this.systemsLoaded ? this.timeSystem.totalTime : 0;
         for (const site of this.crashSites) {
+            if (window.GameTextures?.drawPlane(this.ctx, site, this.camera)) continue;
             if (!this.camera.isVisible(site.x, site.y, 100)) continue;
             const pos = this.camera.worldToScreen(site.x, site.y);
             this.ctx.save();
@@ -1783,7 +1800,16 @@ class Game {
     }
 
     drawBuilding(building, pos, bDef) {
+        if (!bDef) return;
         const ctx = this.ctx;
+        if (window.GameTextures && !['bridge', 'dock', 'fence', 'gate', 'spikes', 'spotlight', 'animal_pen', 'radio_tower'].includes(building.type)) {
+            if (building.type === 'campfire' && this.systemsLoaded && this.timeSystem.isNight()) {
+                ctx.save(); ctx.fillStyle = 'rgba(255,165,0,0.3)';
+                ctx.beginPath(); ctx.arc(pos.x, pos.y, 150, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+            }
+            window.GameTextures.drawBuilding(ctx, building.type, pos.x, pos.y, bDef.width, bDef.height, building);
+            return;
+        }
         ctx.save();
         ctx.translate(pos.x, pos.y);
         if (building.type === 'wooden_house') {
@@ -1921,7 +1947,7 @@ class Game {
                 ctx.beginPath(); ctx.moveTo(-12, ty); ctx.lineTo(12, ty); ctx.stroke();
             }
             // Blinking red beacon
-            const blink = Math.sin(performance.now() * 0.006) > 0;
+            const blink = Math.sin((window.GameTextures?.time || 0) * 6) > 0;
             ctx.fillStyle = blink ? '#EF4444' : '#7F1D1D';
             ctx.beginPath(); ctx.arc(0, -bDef.height/2, 4, 0, Math.PI * 2); ctx.fill();
             if (blink) {
@@ -1941,7 +1967,7 @@ class Game {
     handleWorldEvent(event) {
         if (event.type === 'plane_crash') {
             const site = this.createCrashSite();
-            this.showNotification(site ? 'Подія: літак упав — знайдіть уламки та припаси!' : event.message, 'warning');
+            this.showNotification(site ? 'Подія: літак падає — знайдіть уламки та припаси!' : event.message, 'warning');
         } else {
             this.showNotification(`Подія: ${event.type}`, 'info');
         }
@@ -1975,6 +2001,7 @@ class Game {
                 ]
             };
             this.crashSites.push(site);
+            window.GameTextures?.beginPlaneCrash(site);
             return site;
         }
         return null;
@@ -1982,6 +2009,7 @@ class Game {
 
     getCrashSiteNear(x, y, range) {
         return (this.crashSites || []).find(site =>
+            !window.GameTextures?.isPlaneAirborne(site) &&
             Math.hypot(site.x - x, site.y - y) <= range &&
             (!site.looted || (site.salvageHealth !== undefined && site.salvageHealth > 0))
         ) || null;
@@ -2017,6 +2045,7 @@ class Game {
             this.showNotification('Потрібна сокира, щоб розібрати уламки!', 'warning');
             return;
         }
+        window.GameTextures?.playerAction(this.player, 'swing');
         const damage = 50;
         site.salvageHealth = Math.max(0, site.salvageHealth - damage);
         this.spawnParticles(site.x, site.y, '#9CA3AF', 12);
@@ -2155,10 +2184,12 @@ class Game {
         }
 
         if (!target && !allowMiss) {
+            if (!isGun) window.GameTextures?.playerAction(this.player, 'swing');
             this.showNotification('Немає ворога в радіусі атаки.', 'info');
             return;
         }
         this.lastAttackAt = now;
+        window.GameTextures?.playerAction(this.player, isGun ? 'shoot' : 'swing');
         if (isGun) {
             this.player.inventory.removeItem('ammo', 1);
             this.shotTracers.push({ x: this.player.x, y: this.player.y, endX, endY, life: 0.09, maxLife: 0.09 });
@@ -2352,7 +2383,9 @@ class Game {
         if (res.length > 0) {
             let r = res[0];
             let tool = this.player.equippedTool ? (window.ITEM_DB[this.player.equippedTool].toolType || null) : null;
+            const healthBefore = r.health;
             let result = this.world.harvestResource(r.id, tool);
+            if (r.health < healthBefore) window.GameTextures?.playerAction(this.player, 'swing');
             if (result.message) {
                 if (result.depleted) {
                     this.showNotification(result.message, 'success');
@@ -2618,6 +2651,12 @@ window.updateHUD = function() {
 
 window.drawItemIcon = function(ctx, itemId, x, y, size) {
     if (!window.ITEM_DB || !window.ITEM_DB[itemId]) return;
+    if (window.GameTextures?.drawItem(ctx, itemId, x, y, size)) return;
+    // Original artwork uses a 48px coordinate space. Scale consistently for drops and recipe icons.
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.scale(size / 48, size / 48);
+    x = y = 0; size = 48;
     let item = window.ITEM_DB[itemId];
     let cat = item.category;
     let cx = x + size/2;
@@ -2764,6 +2803,7 @@ window.drawItemIcon = function(ctx, itemId, x, y, size) {
         ctx.fillStyle = cat === 'food' ? '#E74C3C' : (cat === 'resource' ? '#8B4513' : '#00BCD4');
         ctx.beginPath(); ctx.arc(cx, cy, 10, 0, Math.PI*2); ctx.fill();
     }
+    ctx.restore();
     ctx.restore();
 };
 

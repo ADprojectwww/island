@@ -1012,6 +1012,7 @@
                 for (let b of ms.bosses) {
                     if (b.active && Math.hypot(p.x - b.x, p.y - b.y) < 65) {
                         ms.attackBoss(b, p.equippedTool);
+                        window.GameTextures?.playerAction(p, window.ITEM_DB[p.equippedTool]?.range ? 'shoot' : 'swing');
                         return;
                     }
                 }
