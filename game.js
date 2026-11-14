@@ -1151,7 +1151,7 @@ class Game {
         }
         
         this.player = new Player(cx, cy);
-        this.boat = this.createStartingBoat();
+        this.boat = this.createStartingBoat(true);
         this.crashSites = [];
         
         if (this.systemsLoaded) {
@@ -1207,7 +1207,7 @@ class Game {
         this.helicopter = null;
     }
 
-    createStartingBoat() {
+    createStartingBoat(placePlayerNearBoat = false) {
         let best = null;
         let bestDistance = Infinity;
         for (let y = 0; y < this.world.height; y++) {
@@ -1222,6 +1222,32 @@ class Game {
                 }
             }
         }
+
+        if (placePlayerNearBoat && best && bestDistance > 64) {
+            let nearestShore = null;
+            let nearestShoreDistance = Infinity;
+            const boatTileX = Math.floor(best.x / this.tileSize);
+            const boatTileY = Math.floor(best.y / this.tileSize);
+            for (let y = Math.max(0, boatTileY - 2); y <= Math.min(this.world.height - 1, boatTileY + 2); y++) {
+                for (let x = Math.max(0, boatTileX - 2); x <= Math.min(this.world.width - 1, boatTileX + 2); x++) {
+                    const tile = this.world.getTile(x, y);
+                    if (tile < 2 || tile > 5) continue;
+                    const shoreX = x * this.tileSize + this.tileSize / 2;
+                    const shoreY = y * this.tileSize + this.tileSize / 2;
+                    if (Math.hypot(shoreX - best.x, shoreY - best.y) > 64) continue;
+                    const distance = Math.hypot(shoreX - this.player.x, shoreY - this.player.y);
+                    if (distance < nearestShoreDistance) {
+                        nearestShore = { x: shoreX, y: shoreY };
+                        nearestShoreDistance = distance;
+                    }
+                }
+            }
+            if (nearestShore) {
+                this.player.x = nearestShore.x;
+                this.player.y = nearestShore.y;
+            }
+        }
+
         return { x: best ? best.x : this.player.x + 40, y: best ? best.y : this.player.y + 40, heading: 0 };
     }
     
@@ -1263,6 +1289,28 @@ class Game {
         this.pirateManager = PirateManager.deserialize(data.pirateManager);
         if (this.pirateManager.pirates.length === 0) this.pirateManager.init(this.world, this.player);
         this.zombieManager = NightZombieManager.deserialize(data.zombieManager);
+
+        // --- Expansion fields that init() creates but old saves lack ---
+        this.fortPirates = data.fortPirates || [
+            { id: 'fp_1', x: 99 * this.tileSize, y: 88 * this.tileSize, health: 80, maxHealth: 80, speed: 45, attackCd: 0 },
+            { id: 'fp_2', x: 102 * this.tileSize, y: 92 * this.tileSize, health: 80, maxHealth: 80, speed: 45, attackCd: 0 },
+            { id: 'fp_3', x: 96 * this.tileSize, y: 94 * this.tileSize, health: 80, maxHealth: 80, speed: 45, attackCd: 0 }
+        ];
+        this.treasureChests = data.treasureChests || [
+            { id: 'tc_1', x: 100 * this.tileSize, y: 90 * this.tileSize, looted: false },
+            { id: 'tc_2', x: 98 * this.tileSize, y: 93 * this.tileSize, looted: false }
+        ];
+        this.villageTrader = data.villageTrader || {
+            id: 'v_trader',
+            x: 99 * this.tileSize,
+            y: 23 * this.tileSize,
+            name: 'Торговець'
+        };
+        this.pirateRaidTimer = data.pirateRaidTimer || (240 + Math.random() * 120);
+        this.activeRaidPirates = data.activeRaidPirates || [];
+        this.evacuationState = data.evacuationState || 'idle';
+        this.evacuationTimer = data.evacuationTimer || 180;
+        this.helicopter = data.helicopter || null;
         
         this.showNotification('Гру завантажено', 'success');
     }
@@ -1317,8 +1365,16 @@ class Game {
         this.lastTime = timestamp;
         if (dt > 0.1) dt = 0.1; 
         
-        this.update(dt);
-        this.render();
+        try {
+            this.update(dt);
+        } catch (err) {
+            console.error('Game update error:', err);
+        }
+        try {
+            this.render();
+        } catch (err) {
+            console.error('Game render error:', err);
+        }
         
         requestAnimationFrame(this.gameLoop.bind(this));
     }
@@ -1368,6 +1424,8 @@ class Game {
         }
 
         // --- 2. Random Pirate Raids ---
+        if (this.pirateRaidTimer === undefined) this.pirateRaidTimer = 300;
+        if (!this.activeRaidPirates) this.activeRaidPirates = [];
         this.pirateRaidTimer -= dt;
         if (this.pirateRaidTimer <= 0 && this.activeRaidPirates.length === 0) {
             this.pirateRaidTimer = 300 + Math.random() * 180;
@@ -2113,9 +2171,9 @@ class Game {
         const now = performance.now();
         const item = this.player.equippedTool && window.ITEM_DB[this.player.equippedTool];
         const isGun = item && item.category === 'weapon';
-        // Mouse clicks are reserved for firearms, preventing accidental bare-hand
-        // attacks while navigating or using the interface.
-        if (allowMiss && !isGun) {
+        // Mouse clicks can aim firearms or use equipped melee tools, but never
+        // trigger a bare-handed attack while navigating or using the interface.
+        if (allowMiss && !isGun && !item) {
             return;
         }
         if (!item && !allowMiss) {
@@ -2140,6 +2198,11 @@ class Game {
         }
         if (this.pirateManager) {
             for (const pirate of this.pirateManager.pirates) candidates.push({ entity: pirate, type: 'pirate', radius: 28 });
+        }
+        if (this.animalManager) {
+            for (const animal of this.animalManager.animals) {
+                candidates.push({ entity: animal, type: 'animal', radius: animal.width / 2 });
+            }
         }
 
         let target = null;
@@ -2197,10 +2260,15 @@ class Game {
         if (!target) return;
 
         const damage = isGun ? item.damage : (this.player.equippedTool === 'spear' ? 22 : this.player.equippedTool === 'stone_axe' ? 15 : 8);
-        const defeated = type === 'zombie' ? this.zombieManager.damage(target, damage, this) : this.pirateManager.damage(target, damage, this);
-        this.spawnParticles(target.x, target.y, type === 'zombie' ? '#84CC16' : '#F59E0B', 10);
-        this.showNotification(defeated ? (type === 'zombie' ? 'Зомбі знищено!' : 'Піратський корабель потоплено!') : `Влучання: ${damage}`, defeated ? 'success' : 'info');
-        if (defeated) this.player.addXP(type === 'zombie' ? 12 : 30);
+        let defeated;
+        if (type === 'zombie') defeated = this.zombieManager.damage(target, damage, this);
+        else if (type === 'pirate') defeated = this.pirateManager.damage(target, damage, this);
+        else defeated = this.animalManager.damage(target, damage, this);
+        const hitColor = type === 'zombie' ? '#84CC16' : type === 'animal' ? '#22C55E' : '#F59E0B';
+        this.spawnParticles(target.x, target.y, hitColor, 10);
+        const defeatMessage = type === 'zombie' ? 'Зомбі знищено!' : type === 'animal' ? 'Тварину впольовано!' : 'Піратський корабель потоплено!';
+        this.showNotification(defeated ? defeatMessage : `Влучання: ${damage}`, defeated ? 'success' : 'info');
+        if (defeated && type !== 'animal') this.player.addXP(type === 'zombie' ? 12 : 30);
     }
 
     drawTooltips() {

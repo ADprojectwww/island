@@ -1346,7 +1346,12 @@
         const origLoad = Game.prototype.loadFromSave;
         Game.prototype.loadFromSave = function() {
             origLoad.call(this);
-            if (!window.SaveManager || !this.megaSystem) return;
+            // Створити систему якщо її немає (при loadFromSave init() не викликається)
+            if (!this.megaSystem) {
+                this.megaSystem = new window.MegaExpansionSystem(this);
+                this.megaSystem.addLore('intro', 'Початок виживання', 'Літак зазнав катастрофи через незрозумілий спалах світла. Я єдиний вижилий на пляжі.');
+            }
+            if (!window.SaveManager) return;
             const raw = window.SaveManager.load();
             if (raw && raw.megaSystem) {
                 this.megaSystem.sanity = raw.megaSystem.sanity || 100;

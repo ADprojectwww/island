@@ -1198,6 +1198,21 @@ window.AnimalManager = class AnimalManager {
         return res;
     }
 
+    damage(animal, amount, game) {
+        if (!animal || !this.animals.includes(animal)) return false;
+        animal.health -= amount;
+        if (animal.health > 0) return false;
+
+        this.animals.splice(this.animals.indexOf(animal), 1);
+        const meatCount = { boar: 3, goat: 2, rabbit: 1, turtle: 1, parrot: 1, chicken: 1, wild_dog: 1 }[animal.species] || 1;
+        const added = game.player.inventory.addItem('meat', meatCount);
+        if (added < meatCount) {
+            game.world.addDroppedItem('meat', meatCount - added, animal.x, animal.y);
+        }
+        game.player.addXP(8);
+        return true;
+    }
+
     tameDog(animalId, name) {
         const index = this.animals.findIndex(a => a.id === animalId && a.species === 'wild_dog');
         if (index !== -1) {
