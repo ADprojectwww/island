@@ -3527,6 +3527,8 @@ window.updateMapUI = function() {
 };
 
 window.Game = Game;
+window.Player = Player;
+window.World = World;
 
 // --- Application Entry Point ---
 let appInitialized = false;
