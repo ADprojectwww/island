@@ -65,5 +65,22 @@ window.SaveManager = {
             console.error('Помилка при видаленні збереження:', error);
             return false;
         }
+    },
+
+    // rawSave: зберігає довільний об'єкт data напряму (для розширень, що додають свої поля)
+    rawSave: function(gameData) {
+        try {
+            const dataToSave = {
+                version: this.SAVE_VERSION,
+                timestamp: Date.now(),
+                data: gameData
+            };
+            const jsonString = JSON.stringify(dataToSave);
+            localStorage.setItem(this.SAVE_KEY, jsonString);
+            return true;
+        } catch (error) {
+            console.error('Помилка rawSave:', error);
+            return false;
+        }
     }
 };

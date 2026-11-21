@@ -305,6 +305,20 @@ body {
     transform: scale(0.95);
 }
 
+@media (max-width: 800px) and (max-height: 600px) {
+    .side-buttons {
+        top: 50%;
+        right: 10px;
+        transform: translateY(-50%);
+        display: grid;
+        grid-template-columns: repeat(2, 44px);
+        grid-auto-rows: 44px;
+        gap: 6px;
+        max-height: calc(100% - 24px);
+        overflow-y: auto;
+    }
+}
+
 /* -------------------------------------
  * PANELS (General)
  * ------------------------------------- */

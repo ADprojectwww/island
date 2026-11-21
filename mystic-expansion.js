@@ -1053,6 +1053,34 @@
             this.mysticSystem = new window.MysticWorldSystem(this);
         };
 
+        // Патч Game.loadFromSave — створити систему якщо її немає
+        const origLoad = Game.prototype.loadFromSave;
+        Game.prototype.loadFromSave = function() {
+            origLoad.call(this);
+            if (!this.mysticSystem) {
+                this.mysticSystem = new window.MysticWorldSystem(this);
+            }
+            const raw = window.SaveManager ? window.SaveManager.load() : null;
+            if (raw && raw.mysticSystem) {
+                for (const [key, value] of Object.entries(raw.mysticSystem)) {
+                    if (key !== 'game' && Object.prototype.hasOwnProperty.call(this.mysticSystem, key)) {
+                        this.mysticSystem[key] = value;
+                    }
+                }
+            }
+        };
+
+        const origSave = Game.prototype.saveGame;
+        Game.prototype.saveGame = function() {
+            origSave.call(this);
+            if (!window.SaveManager || !this.mysticSystem) return;
+            const raw = window.SaveManager.load() || {};
+            raw.mysticSystem = Object.fromEntries(
+                Object.entries(this.mysticSystem).filter(([key]) => key !== 'game')
+            );
+            window.SaveManager.rawSave(raw);
+        };
+
         // Патч Game.update
         const origUpdate = Game.prototype.update;
         Game.prototype.update = function(dt) {
