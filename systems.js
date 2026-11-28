@@ -43,7 +43,7 @@ window.ITEM_DB = {
   'sniper_rifle':  { id:'sniper_rifle', name:'Снайперська гвинтівка', icon:'sniper', category:'weapon', maxStack:1, damage:95, range:500, cooldown:1.2, description:'Точна снайперська гвинтівка' },
   'metal_armor':   { id:'metal_armor', name:'Металевий броньжилет', icon:'armor', category:'armor', maxStack:1, description:'Захисний жилет зі шматків металу, зменшує пошкодження на 40%' },
   'plank':         { id:'plank', name:'Дошка', icon:'plank', category:'resource', maxStack:20, description:'Обрізана дерев\'яна дошка' },
-  'bridge_item':   { id:'bridge_item', name:'Міст (секція)', icon:'bridge', category:'building', maxStack:5, placeable:'bridge', description:'Секція мосту через воду' },
+  'bridge_item':   { id:'bridge_item', name:'Міст (секція)', icon:'bridge', category:'building', maxStack:15, placeable:'bridge', description:'Секція мосту через воду (3 шт за крафт)' },
   'dock_item':     { id:'dock_item', name:'Причал (предмет)', icon:'dock', category:'building', maxStack:1, placeable:'dock', description:'Причал для швидкого посадки/виходу з човна' },
   'sulfur':         { id:'sulfur', name:'Сірка', icon:'sulfur', category:'resource', maxStack:20, description:'Жовта сірка з вулканічного острова' },
   'gunpowder':      { id:'gunpowder', name:'Порох', icon:'gunpowder', category:'resource', maxStack:30, description:'Порох для виготовлення набоїв' },
@@ -90,7 +90,7 @@ window.RECIPE_DB = {
   'metal_armor':    { id:'metal_armor', name:'Броньжилет', result:{id:'metal_armor',count:1}, materials:[{id:'metal_scrap',count:8},{id:'fiber',count:6},{id:'rope',count:3}], requires:'workbench' },
   'generator':      { id:'generator', name:'Генератор', result:{id:'generator',count:1}, materials:[{id:'metal_scrap',count:10},{id:'electronics',count:8},{id:'fuel',count:2}], requires:'workbench' },
   'car':            { id:'car', name:'Позашляховик', result:{id:'car',count:1}, materials:[{id:'metal_scrap',count:20},{id:'electronics',count:10},{id:'fuel',count:3},{id:'rope',count:5}], requires:'workbench' },
-  'bridge_item':    { id:'bridge_item', name:'Міст (секція)', result:{id:'bridge_item',count:1}, materials:[{id:'plank',count:6},{id:'rope',count:2}], requires:'workbench' },
+  'bridge_item':    { id:'bridge_item', name:'Міст (3 секції)', result:{id:'bridge_item',count:3}, materials:[{id:'plank',count:6},{id:'rope',count:2}], requires:'workbench' },
   'dock_item':      { id:'dock_item', name:'Причал', result:{id:'dock_item',count:1}, materials:[{id:'plank',count:12},{id:'rope',count:4},{id:'stone',count:6}], requires:'workbench' },
   'gunpowder':      { id:'gunpowder', name:'Порох', result:{id:'gunpowder',count:2}, materials:[{id:'sulfur',count:1},{id:'wood',count:1}], requires:'workbench' },
   'ammo_craft':     { id:'ammo_craft', name:'Набої (10 шт)', result:{id:'ammo',count:10}, materials:[{id:'gunpowder',count:2},{id:'metal_scrap',count:1}], requires:'workbench' },
@@ -584,6 +584,10 @@ window.BuildingSystem = class BuildingSystem {
 
     if (bData.func === 'rest' || bData.func === 'heat') {
       player.energy = Math.min(player.maxEnergy, player.energy + 25);
+      if (bData.func === 'rest' && window.game && window.game.megaSystem) {
+        window.game.megaSystem.timeSinceLastSleep = 0;
+        window.game.megaSystem.insomniaPhantoms = [];
+      }
       // Ensure player is safely outside obstacle collision perimeter so they can freely move
       const minSafeDist = Math.max(bData.width, bData.height) / 2 + 18;
       const dx = player.x - b.x;
@@ -774,11 +778,12 @@ window.TimeSystem = class TimeSystem {
 window.SurvivalSystem = class SurvivalSystem {
   constructor() {}
 
-  update(dt, playerStats, weather, time) {
+  update(dt, playerStats, weather, time, difficulty = 'normal') {
     const tempMod = weather.getTemperatureModifier();
+    const diffMult = difficulty === 'easy' ? 0.6 : difficulty === 'hard' ? 1.4 : 1.0;
     
-    playerStats.hunger -= dt * 0.1;
-    playerStats.thirst -= dt * 0.15 * tempMod;
+    playerStats.hunger -= dt * 0.1 * diffMult;
+    playerStats.thirst -= dt * 0.15 * tempMod * diffMult;
     
     if (playerStats.moving) {
       playerStats.energy -= dt * 0.2;
@@ -874,18 +879,43 @@ window.EventSystem = class EventSystem {
     this.lastEventTime = 0;
     this.minCooldown = 180;
     this.nextPlaneCrashTime = 15;
+    this.nextPlaneCrashDay = 1;
+    this.firstCrashDone = false;
+    this.nextShipwreckDay = 4; // Через 3 дні після 1-го дня
     this.eventLog = [];
   }
 
   update(dt, gameState) {
-    // Game chooses a valid land position for the crash site.
-    if (gameState.totalTime >= this.nextPlaneCrashTime) {
+    const currentDay = gameState.day || 1;
+
+    // 1. Перше падіння літака при заході в гру (через 15 сек), далі раз на 5 днів
+    if (!this.firstCrashDone && gameState.totalTime >= this.nextPlaneCrashTime) {
+      this.firstCrashDone = true;
       this.lastEventTime = gameState.totalTime;
-      this.nextPlaneCrashTime = gameState.totalTime + 300 + Math.random() * 180;
+      this.nextShipwreckDay = currentDay + 3; // через 3 дні — судно
+      this.nextPlaneCrashDay = currentDay + 5; // через 5 днів — наступний літак (2 дні після судна)
       const ev = { type: 'plane_crash', data: {}, message: 'У небі пролунав вибух — літак упав на острові!' };
       this.eventLog.push(ev.message);
       return ev;
     }
+
+    if (this.firstCrashDone && currentDay >= this.nextPlaneCrashDay) {
+      this.lastEventTime = gameState.totalTime;
+      this.nextPlaneCrashDay = currentDay + 5;
+      const ev = { type: 'plane_crash', data: {}, message: 'У небі пролунав вибух — літак упав на острові!' };
+      this.eventLog.push(ev.message);
+      return ev;
+    }
+
+    // 2. Закинуте судно — через 3 дні після літака, далі раз на 5 днів
+    if (this.firstCrashDone && currentDay >= this.nextShipwreckDay) {
+      this.lastEventTime = gameState.totalTime;
+      this.nextShipwreckDay = currentDay + 5;
+      const ev = { type: 'shipwreck', data: {}, message: '⚓ На горизонті помічено закинуте судно!' };
+      this.eventLog.push(ev.message);
+      return ev;
+    }
+
     if (gameState.totalTime - this.lastEventTime > this.minCooldown) {
       if (Math.random() < 0.0005) {
         this.lastEventTime = gameState.totalTime;
@@ -906,6 +936,9 @@ window.EventSystem = class EventSystem {
       lastEventTime: this.lastEventTime,
       minCooldown: this.minCooldown,
       nextPlaneCrashTime: this.nextPlaneCrashTime,
+      nextPlaneCrashDay: this.nextPlaneCrashDay,
+      firstCrashDone: this.firstCrashDone,
+      nextShipwreckDay: this.nextShipwreckDay,
       eventLog: this.eventLog
     };
   }
@@ -916,6 +949,9 @@ window.EventSystem = class EventSystem {
       sys.lastEventTime = data.lastEventTime || 0;
       sys.minCooldown = data.minCooldown || 300;
       sys.nextPlaneCrashTime = data.nextPlaneCrashTime || 15;
+      sys.nextPlaneCrashDay = data.nextPlaneCrashDay || 6;
+      sys.firstCrashDone = data.firstCrashDone !== undefined ? data.firstCrashDone : (data.nextPlaneCrashTime > 20);
+      sys.nextShipwreckDay = data.nextShipwreckDay || 4;
       sys.eventLog = data.eventLog || [];
     }
     return sys;

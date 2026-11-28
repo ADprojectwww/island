@@ -83,7 +83,8 @@
             'naval_radar':       { id:'naval_radar',       name:'Морський радар',        icon:'naval_radar',   category:'tool',     maxStack:1,  description:'Прилад навігації: розкриває підводні об\'єкти, острови та рифи' },
             'undying_amulet':    { id:'undying_amulet',    name:'Амулет безсмертя',      icon:'amulet_undying',category:'relic',    maxStack:1,  description:'Реліквія Скрині Проклятих: рятує від смерті та миттєво зцілює 100 HP!' },
             'endless_flask':     { id:'endless_flask',     name:'Нескінченна фляга',     icon:'endless_flask', category:'food',     maxStack:1,  description:'Фляга живої води: втамовує спрагу та зцілює +20 HP, ніколи не вичерпується' },
-            'torpedo_part':      { id:'torpedo_part',      name:'Частина торпеди',       icon:'torpedo_mat',   category:'resource', maxStack:2,  description:'Потужний військовий заряд із затонулого есмінця' }
+            'torpedo_part':      { id:'torpedo_part',      name:'Частина торпеди',       icon:'torpedo_mat',   category:'resource', maxStack:2,  description:'Потужний військовий заряд із затонулого есмінця' },
+            'watchtower_item':   { id:'watchtower_item',   name:'Спостережна вишка',     icon:'b_tower',       category:'building', maxStack:2,  placeable:'watchtower', description:'Висока вишка: рятує від наводніння та ворогів [E — піднятися]' }
         };
         Object.assign(window.ITEM_DB, megaItems);
     }
@@ -129,7 +130,8 @@
             'obsidian_blade':    { id:'obsidian_blade',    name:'Обсидіановий клинок', result:{id:'obsidian_blade',count:1},    materials:[{id:'obsidian',count:3},{id:'steel_ingot',count:2},{id:'wood',count:2}],          requires:'workbench' },
             'military_uniform':  { id:'military_uniform',  name:'Камуфляжна форма',   result:{id:'military_uniform',count:1},  materials:[{id:'fiber',count:8},{id:'rope',count:2}],                                         requires:'workbench' },
             'tactical_vest':     { id:'tactical_vest',     name:'Тактичний бронежилет',result:{id:'tactical_vest',count:1},    materials:[{id:'steel_ingot',count:4},{id:'fiber',count:6}],                                  requires:'workbench' },
-            'military_helmet':   { id:'military_helmet',   name:'Військова каска',     result:{id:'military_helmet',count:1},  materials:[{id:'steel_ingot',count:3},{id:'rope',count:1}],                                   requires:'workbench' }
+            'military_helmet':   { id:'military_helmet',   name:'Військова каска',     result:{id:'military_helmet',count:1},  materials:[{id:'steel_ingot',count:3},{id:'rope',count:1}],                                   requires:'workbench' },
+            'watchtower_item':   { id:'watchtower_item',   name:'Спостережна вишка',   result:{id:'watchtower_item',count:1},  materials:[{id:'wood',count:12},{id:'plank',count:6},{id:'rope',count:4}],                  requires:null }
         };
         Object.assign(window.RECIPE_DB, megaRecipes);
     }
@@ -157,7 +159,8 @@
 
             // Станки та автоматизація бази
             'blast_furnace':{ id:'blast_furnace',name:'Доменна піч',          width:44, height:48, passable:false, maxHealth:600, description:'Переплавка скла, цегли, сталі та обсидіану [E]', func:'smelter' },
-            'alarm_system': { id:'alarm_system', name:'Охоронна сигналізація',width:32, height:36, passable:false, maxHealth:300, description:'Сирена й прожектор при наближенні ворогів',       func:'alarm' }
+            'alarm_system': { id:'alarm_system', name:'Охоронна сигналізація',width:32, height:36, passable:false, maxHealth:300, description:'Сирена й прожектор при наближенні ворогів',       func:'alarm' },
+            'watchtower':   { id:'watchtower',   name:'Спостережна вишка',    width:48, height:48, passable:false, maxHealth:400, description:'Висока вишка: захищає від наводніння та атак [E]', cost:[{id:'wood',count:12},{id:'plank',count:6},{id:'rope',count:4}], func:'watchtower' }
         };
         Object.assign(window.BUILDING_DB, megaBuildings);
     }
@@ -345,7 +348,7 @@
             this.discoveredLore = [];
 
             // 11. Динамічні катастрофи (Disasters)
-            this.disasterTimer = 360 + Math.random() * 240;
+            this.disasterTimer = 180 + Math.random() * 140;
             this.tsunamiActive = false;
             this.tsunamiTimer = 0;
             this.meteorCraters = [];
@@ -403,11 +406,21 @@
             this.volcanoErupting = false;
             this.volcanoDuration = 0;
             this.volcanoBombs = [];
+            this.volcanoAsh = [];
             this.obsidianRocks = [];
             this.screenShake = 0;
 
             // 17. Охоронні сигналізації
             this.alarmCooldown = 0;
+
+            // 18. Наводніння (Flooding) та Фантоми безсоння (Insomnia Phantoms)
+            this.floodLevel = 0; // 0..1
+            this.floodDmgCd = 0;
+            this.timeSinceLastSleep = 0;
+            this.insomniaPhantoms = [];
+            this.insomniaSpawnCd = 0;
+            this.phantomsSpawnedDay = -1;
+            this.phantomsSpawnedToday = 0;
         }
 
         // ─── ОНОВЛЕННЯ СИСТЕМ (Update Loop) ──────────────────────
@@ -450,6 +463,8 @@
             this.updateVolcano(dt, p);
             this.updateCursedChest(dt, p);
             this.updateAlarms(dt, p);
+            this.updateFlood(dt, p);
+            this.updateInsomniaPhantoms(dt, p);
             this.updateHUD();
         }
 
@@ -968,7 +983,9 @@
             this.tsunamiTimer = 45;
             MegaAudio.playBossRoar();
             if (window.soundSystem) window.soundSystem.playAlarm();
-            this.game.showNotification('🌊 УВАГА: Наближається ЦУНАМІ! Підніміться на висоту або сідайте в човен!', 'danger');
+            if (!p?.inBoat && !p?.onWatchtower) {
+                this.game.showNotification('🌊 УВАГА: Наближається ЦУНАМІ! Підніміться на висоту або сідайте в човен!', 'danger');
+            }
         }
 
         spawnTsunamiLoot(p) {
@@ -1091,8 +1108,10 @@
             p.energy = Math.min(p.maxEnergy, p.energy + 60);
             p.health = Math.min(p.maxHealth, p.health + 25);
             this.sanity = Math.min(this.maxSanity, this.sanity + 40);
+            this.timeSinceLastSleep = 0;
+            this.insomniaPhantoms = [];
             MegaAudio.playTone(523, 0.5, 'sine', 0.2);
-            this.game.showNotification('😴 Ви міцно поспали. Настав новий ранок! Енергію та психіку відновлено.', 'success');
+            this.game.showNotification('😴 Ви міцно поспали. Настав новий ранок! Енергію, психіку та сон відновлено.', 'success');
             if (window.updateHUD) window.updateHUD();
         }
 
@@ -1365,7 +1384,23 @@
 
             if (this.volcanoErupting) {
                 this.volcanoDuration -= dt;
-                this.screenShake = Math.max(0.3, this.screenShake);
+
+                // Спавнимо частинки попелу замість сірого/червоного екрана
+                const cw = this.game.canvas ? this.game.canvas.width : 1200;
+                const ch = this.game.canvas ? this.game.canvas.height : 800;
+                if (this.volcanoAsh.length < 150) {
+                    for (let k = 0; k < 4; k++) {
+                        this.volcanoAsh.push({
+                            x: Math.random() * cw,
+                            y: -10,
+                            vx: -28 - Math.random() * 35,
+                            vy: 40 + Math.random() * 65,
+                            size: 2 + Math.random() * 3.5,
+                            alpha: 0.5 + Math.random() * 0.4,
+                            dark: Math.random() < 0.5
+                        });
+                    }
+                }
 
                 this.bombInterval = (this.bombInterval || 0) - dt;
                 if (this.bombInterval <= 0) {
@@ -1410,6 +1445,22 @@
                     });
 
                     this.volcanoBombs.splice(i, 1);
+                }
+            }
+
+            // Оновлення руху частинок попелу
+            const ashH = this.game.canvas ? this.game.canvas.height : 800;
+            for (let i = this.volcanoAsh.length - 1; i >= 0; i--) {
+                const a = this.volcanoAsh[i];
+                a.x += a.vx * dt;
+                a.y += a.vy * dt;
+                if (a.y > ashH + 10) {
+                    if (this.volcanoErupting) {
+                        a.y = -10;
+                        a.x = Math.random() * (this.game.canvas ? this.game.canvas.width : 1200);
+                    } else {
+                        this.volcanoAsh.splice(i, 1);
+                    }
                 }
             }
         }
@@ -1546,6 +1597,104 @@
                     }
                 } else {
                     a.alert = false;
+                }
+            }
+        }
+
+        // ─── НАВОДНІННЯ (Flooding) ────────────────────────────
+        updateFlood(dt, p) {
+            if (this.tsunamiActive) {
+                this.floodLevel = Math.min(1, this.floodLevel + dt * 0.14);
+            } else {
+                this.floodLevel = Math.max(0, this.floodLevel - dt * 0.12);
+            }
+
+            if (this.floodLevel > 0.5 && p && !p.inBoat && !p.onWatchtower && !this.inPlayerBunker && !this.inWarshipDungeon) {
+                const tile = this.game.world ? this.game.world.getTileAtWorld(p.x, p.y) : 3;
+                // Високі скелі/гори (4) або міст рятують від затоплення
+                let onBridge = false;
+                if (this.game.buildingSystem) {
+                    onBridge = this.game.buildingSystem.buildings.some(b => {
+                        if (b.type !== 'bridge' && b.type !== 'dock') return false;
+                        const bDef = window.BUILDING_DB[b.type];
+                        return bDef && p.x >= b.x - bDef.width/2 && p.x <= b.x + bDef.width/2 && p.y >= b.y - bDef.height/2 && p.y <= b.y + bDef.height/2;
+                    });
+                }
+                if (tile !== 4 && !onBridge) {
+                    // На піку цунамі гравець повністю помирає, якщо не в човні / на вишці
+                    if (this.floodLevel >= 0.88) {
+                        p.health = 0;
+                        MegaAudio.playExplosion();
+                        this.game.showNotification('🌊 ЦУНАМІ НАКРИЛО ВАС! Ви потонули!', 'danger');
+                        return;
+                    }
+                    this.floodDmgCd -= dt;
+                    if (this.floodDmgCd <= 0) {
+                        this.floodDmgCd = 1.2;
+                        p.health = Math.max(0, p.health - 12);
+                        p.energy = Math.max(0, p.energy - 6);
+                        MegaAudio.playTone(180, 0.15, 'sine', 0.25);
+                        this.game.showNotification('🌊 Острів затоплює! Сідайте в човен або підніміться на ВИШКУ [E]!', 'danger');
+                    }
+                }
+            }
+        }
+
+        // ─── ФАНТОМИ БЕЗСОННЯ (Insomnia Phantoms) ─────────────
+        updateInsomniaPhantoms(dt, p) {
+            if (!p) return;
+            this.timeSinceLastSleep = (this.timeSinceLastSleep || 0) + dt;
+            const currentDay = this.game.timeSystem ? this.game.timeSystem.day : 1;
+            if (this.phantomsSpawnedDay !== currentDay) {
+                this.phantomsSpawnedDay = currentDay;
+                this.phantomsSpawnedToday = 0;
+            }
+            const isNight = this.game.timeSystem && this.game.timeSystem.isNight();
+            // Якщо гравець не спить довго (вночі після ~4 хв або загалом > 7 хв) — прилітають фантоми (макс 2 на добу)
+            const insomniaActive = (isNight && this.timeSinceLastSleep >= 240) || this.timeSinceLastSleep >= 420;
+
+            if (insomniaActive) {
+                this.insomniaSpawnCd -= dt;
+                if (this.phantomsSpawnedToday < 2 && this.insomniaPhantoms.length < 2 && this.insomniaSpawnCd <= 0) {
+                    this.insomniaSpawnCd = 12 + Math.random() * 8;
+                    this.phantomsSpawnedToday++;
+                    const angle = Math.random() * Math.PI * 2;
+                    const dist = 240 + Math.random() * 120;
+                    this.insomniaPhantoms.push({
+                        x: p.x + Math.cos(angle) * dist,
+                        y: p.y + Math.sin(angle) * dist,
+                        health: 45,
+                        maxHealth: 45,
+                        speed: 95,
+                        biteCd: 0
+                    });
+                    if (this.insomniaPhantoms.length === 1) {
+                        MegaAudio.playTone(220, 0.4, 'sawtooth', 0.25);
+                        this.game.showNotification('👻 Ви довго не спали! Прилетіли 2 Фантоми безсоння — вони будуть кусати вас! Поспіть!', 'danger');
+                    }
+                }
+            } else if (!isNight && this.timeSinceLastSleep < 240 && this.insomniaPhantoms.length > 0) {
+                this.insomniaPhantoms = [];
+            }
+
+            // Рух фантомів та укуси
+            for (let i = this.insomniaPhantoms.length - 1; i >= 0; i--) {
+                const ph = this.insomniaPhantoms[i];
+                ph.biteCd = Math.max(0, ph.biteCd - dt);
+                const dx = p.x - ph.x;
+                const dy = p.y - ph.y;
+                const dist = Math.hypot(dx, dy);
+                if (dist > 16) {
+                    ph.x += (dx / dist) * ph.speed * dt;
+                    ph.y += (dy / dist) * ph.speed * dt;
+                }
+                if (dist < 28 && ph.biteCd <= 0 && !this.inPlayerBunker && !p.onWatchtower) {
+                    ph.biteCd = 2.0;
+                    p.health = Math.max(0, p.health - 8);
+                    this.sanity = Math.max(0, this.sanity - 4);
+                    MegaAudio.playTone(150, 0.2, 'sawtooth', 0.3);
+                    this.game.spawnParticles(p.x, p.y, '#A855F7', 10);
+                    this.game.showNotification('👻 Фантом вкусив вас через безсоння! Поспіть у ліжку або хатині!', 'danger');
                 }
             }
         }
@@ -1893,6 +2042,83 @@
                 ctx.restore();
             }
 
+            // 9.1. Фантоми безсоння
+            for (let ph of this.insomniaPhantoms) {
+                if (!camera.isVisible(ph.x, ph.y, 40)) continue;
+                const sp = camera.worldToScreen(ph.x, ph.y);
+                const bob = Math.sin(time * 5 + ph.x) * 4;
+                ctx.save();
+                ctx.globalAlpha = 0.82;
+                // Тінь/аура фантома
+                const grad = ctx.createRadialGradient(sp.x, sp.y + bob, 2, sp.x, sp.y + bob, 22);
+                grad.addColorStop(0, 'rgba(168, 85, 247, 0.85)');
+                grad.addColorStop(1, 'rgba(30, 27, 75, 0)');
+                ctx.fillStyle = grad;
+                ctx.beginPath(); ctx.arc(sp.x, sp.y + bob, 22, 0, Math.PI * 2); ctx.fill();
+                // Силует фантома
+                ctx.fillStyle = '#312E81';
+                ctx.beginPath();
+                ctx.arc(sp.x, sp.y - 4 + bob, 11, Math.PI, 0);
+                ctx.lineTo(sp.x + 12, sp.y + 12 + bob);
+                ctx.lineTo(sp.x + 4, sp.y + 7 + bob);
+                ctx.lineTo(sp.x, sp.y + 13 + bob);
+                ctx.lineTo(sp.x - 4, sp.y + 7 + bob);
+                ctx.lineTo(sp.x - 12, sp.y + 12 + bob);
+                ctx.closePath(); ctx.fill();
+                // Палаючі очі та ікла
+                ctx.fillStyle = '#F43F5E';
+                ctx.beginPath(); ctx.arc(sp.x - 4, sp.y - 5 + bob, 2.2, 0, Math.PI * 2); ctx.fill();
+                ctx.beginPath(); ctx.arc(sp.x + 4, sp.y - 5 + bob, 2.2, 0, Math.PI * 2); ctx.fill();
+                if (ph.health < ph.maxHealth) {
+                    ctx.fillStyle = '#1E293B'; ctx.fillRect(sp.x - 14, sp.y - 22 + bob, 28, 4);
+                    ctx.fillStyle = '#A855F7'; ctx.fillRect(sp.x - 14, sp.y - 22 + bob, 28 * (ph.health / ph.maxHealth), 4);
+                }
+                ctx.restore();
+            }
+
+            // 9.2. Візуалізація Наводніння (не показується, коли гравець уже в човні або на вишці)
+            if (this.floodLevel > 0.02 && !p?.inBoat && !p?.onWatchtower) {
+                ctx.save();
+                const alpha = Math.min(0.55, this.floodLevel * 0.55);
+                ctx.fillStyle = `rgba(14, 116, 144, ${alpha})`;
+                ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height);
+                // Хвилі по воді
+                ctx.strokeStyle = `rgba(186, 230, 253, ${this.floodLevel * 0.45})`;
+                ctx.lineWidth = 2;
+                for (let wy = 40; wy < ctx.canvas.height; wy += 65) {
+                    ctx.beginPath();
+                    for (let wx = 0; wx <= ctx.canvas.width; wx += 40) {
+                        const waveY = wy + Math.sin(wx * 0.02 + time * 3 + wy) * 6;
+                        if (wx === 0) ctx.moveTo(wx, waveY);
+                        else ctx.lineTo(wx, waveY);
+                    }
+                    ctx.stroke();
+                }
+                // Банер попередження зверху
+                ctx.fillStyle = 'rgba(15, 23, 42, 0.78)';
+                ctx.fillRect(ctx.canvas.width / 2 - 190, 56, 380, 28);
+                ctx.strokeStyle = '#38BDF8'; ctx.lineWidth = 1.5;
+                ctx.strokeRect(ctx.canvas.width / 2 - 190, 56, 380, 28);
+                ctx.fillStyle = '#E0F2FE';
+                ctx.font = 'bold 13px sans-serif';
+                ctx.textAlign = 'center';
+                const statusTxt = p?.onWatchtower ? '🗼 Ви на вишці (у безпеці)' : '⚠️ Забирайтеся на ВИШКУ або в човен!';
+                ctx.fillText(`🌊 НАВОДНІННЯ (${Math.round(this.floodLevel * 100)}%) — ${statusTxt}`, ctx.canvas.width / 2, 74);
+                ctx.restore();
+            }
+
+            // 9.3. Вулканічний попіл (частички) замість сірого/червоного екрана
+            if (this.volcanoAsh && this.volcanoAsh.length > 0) {
+                ctx.save();
+                for (let a of this.volcanoAsh) {
+                    ctx.fillStyle = a.dark ? `rgba(71, 85, 105, ${a.alpha})` : `rgba(203, 213, 225, ${a.alpha})`;
+                    ctx.beginPath();
+                    ctx.ellipse(a.x, a.y, a.size * 1.6, a.size * 0.65, -0.25, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+
             // 9. Відмальовування хвиль плавання для гравця
             if (p && !p.inBoat && !p.inBuggy && camera.isVisible(p.x, p.y)) {
                 const sp = camera.worldToScreen(p.x, p.y);
@@ -2004,6 +2230,11 @@
         Game.prototype.update = function(dt) {
             origUpdate.call(this, dt);
             if (this.megaSystem) this.megaSystem.update(dt);
+            if (this.running && this.player && this.player.health <= 0) {
+                this.running = false;
+                alert('Ви загинули! Гра закінчена.');
+                window.location.reload();
+            }
         };
 
         // Патч Game.render
@@ -2052,6 +2283,13 @@
             const origPlayerUpdate = Player.prototype.update;
             Player.prototype.update = function(dt, input, world, buildingSystem) {
                 const ms = window.game?.megaSystem;
+
+                // Якщо гравець на спостережній вишці — залишається на майданчику
+                if (this.onWatchtower) {
+                    this.x = this.onWatchtower.x;
+                    this.y = this.onWatchtower.y - 22;
+                    return;
+                }
 
                 // Керування баггі замість звичайного бігу
                 if (this.inBuggy && ms && ms.buggy) {
@@ -2167,6 +2405,27 @@
             const p = this.player;
             const ms = this.megaSystem;
             if (!p || !ms) return origInteract ? origInteract.call(this) : undefined;
+
+            // 0. Підйом / спуск зі Спостережної вишки
+            if (p.onWatchtower) {
+                p.x = p.onWatchtower.x;
+                p.y = p.onWatchtower.y + 38;
+                p.onWatchtower = null;
+                MegaAudio.playTone(320, 0.12, 'triangle', 0.2);
+                this.showNotification('🗼 Ви спустилися зі спостережної вишки.', 'info');
+                return;
+            }
+            if (this.buildingSystem) {
+                const wt = this.buildingSystem.buildings.find(b => b.type === 'watchtower' && Math.hypot(b.x - p.x, b.y - p.y) <= 65);
+                if (wt) {
+                    p.onWatchtower = wt;
+                    p.x = wt.x;
+                    p.y = wt.y - 22;
+                    MegaAudio.playTone(480, 0.14, 'triangle', 0.2);
+                    this.showNotification('🗼 Ви піднялися на спостережну вишку! [E] — спуститися', 'success');
+                    return;
+                }
+            }
 
             // 1. Якщо гравець у підземному бункері
             if (ms.inPlayerBunker) {
@@ -2330,21 +2589,24 @@
                     window.GameTextures?.playerAction(p, 'swing');
                     return;
                 }
-                // Боси
-                for (let b of ms.bosses) {
-                    if (b.active && Math.hypot(p.x - b.x, p.y - b.y) < 65) {
-                        ms.attackBoss(b, p.equippedTool);
-                        window.GameTextures?.playerAction(p, window.ITEM_DB[p.equippedTool]?.range ? 'shoot' : 'swing');
-                        return;
-                    }
-                }
-                // Примари Скрині Проклятих
-                if (ms.cursedChest && ms.cursedChest.wraiths) {
-                    for (let w of ms.cursedChest.wraiths) {
-                        if (w.active && Math.hypot(p.x - w.x, p.y - w.y) < 60) {
-                            ms.attackWraith(w, p.equippedTool);
+                // Боси та примари у ближньому бою (вогнепальна зброя б'є через game.js на будь-якій відстані!)
+                const eqItem = p.equippedTool ? window.ITEM_DB[p.equippedTool] : null;
+                const isFirearm = eqItem && eqItem.category === 'weapon' && (eqItem.range || p.equippedTool === 'pistol' || p.equippedTool === 'rifle' || p.equippedTool === 'machinegun' || p.equippedTool === 'sniper_rifle' || p.equippedTool === 'military_rifle');
+                if (!isFirearm) {
+                    for (let b of ms.bosses) {
+                        if (b.active && Math.hypot(p.x - b.x, p.y - b.y) < 65) {
+                            ms.attackBoss(b, p.equippedTool);
                             window.GameTextures?.playerAction(p, 'swing');
                             return;
+                        }
+                    }
+                    if (ms.cursedChest && ms.cursedChest.wraiths) {
+                        for (let w of ms.cursedChest.wraiths) {
+                            if (w.active && Math.hypot(p.x - w.x, p.y - w.y) < 60) {
+                                ms.attackWraith(w, p.equippedTool);
+                                window.GameTextures?.playerAction(p, 'swing');
+                                return;
+                            }
                         }
                     }
                 }
@@ -2360,6 +2622,9 @@
             const raw = window.SaveManager.load() || {};
             raw.megaSystem = {
                 sanity: this.megaSystem.sanity,
+                timeSinceLastSleep: this.megaSystem.timeSinceLastSleep || 0,
+                phantomsSpawnedDay: this.megaSystem.phantomsSpawnedDay,
+                phantomsSpawnedToday: this.megaSystem.phantomsSpawnedToday,
                 boatUpgrades: this.megaSystem.boatUpgrades,
                 boatStorage: this.megaSystem.boatStorage,
                 discoveredLore: this.megaSystem.discoveredLore,
@@ -2381,6 +2646,9 @@
             const raw = window.SaveManager.load();
             if (raw && raw.megaSystem) {
                 this.megaSystem.sanity = raw.megaSystem.sanity || 100;
+                this.megaSystem.timeSinceLastSleep = raw.megaSystem.timeSinceLastSleep || 0;
+                this.megaSystem.phantomsSpawnedDay = Number.isFinite(raw.megaSystem.phantomsSpawnedDay) ? raw.megaSystem.phantomsSpawnedDay : -1;
+                this.megaSystem.phantomsSpawnedToday = Number.isFinite(raw.megaSystem.phantomsSpawnedToday) ? raw.megaSystem.phantomsSpawnedToday : 0;
                 this.megaSystem.boatUpgrades = raw.megaSystem.boatUpgrades || this.megaSystem.boatUpgrades;
                 this.megaSystem.boatStorage = raw.megaSystem.boatStorage || [];
                 this.megaSystem.discoveredLore = raw.megaSystem.discoveredLore || [];
@@ -2551,6 +2819,45 @@
                     ctx.fillStyle = '#FBBF24';
                     ctx.beginPath(); ctx.arc(0, 4, 6 + Math.sin(time * 8) * 1.5, 0, Math.PI * 2); ctx.fill();
                     ctx.fillStyle = '#1E293B'; ctx.fillRect(-6, -h/2 - 10, 12, 10);
+                    ctx.restore();
+                    return;
+                }
+
+                // Спостережна вишка
+                if (type === 'watchtower') {
+                    const w = bDef.width, h = bDef.height;
+                    ctx.save();
+                    ctx.translate(pos.x, pos.y);
+                    // Тінь
+                    ctx.fillStyle = 'rgba(0,0,0,0.3)';
+                    ctx.beginPath(); ctx.ellipse(0, h/2 + 2, 24, 9, 0, 0, Math.PI * 2); ctx.fill();
+                    // Опорні стовпи
+                    ctx.strokeStyle = '#78350F'; ctx.lineWidth = 4;
+                    ctx.beginPath();
+                    ctx.moveTo(-16, h/2); ctx.lineTo(-12, -24);
+                    ctx.moveTo(16, h/2); ctx.lineTo(12, -24);
+                    ctx.stroke();
+                    // Драбина по центру
+                    ctx.strokeStyle = '#92400E'; ctx.lineWidth = 2;
+                    ctx.beginPath();
+                    ctx.moveTo(-5, h/2); ctx.lineTo(-5, -18);
+                    ctx.moveTo(5, h/2); ctx.lineTo(5, -18);
+                    for (let ry = h/2 - 6; ry > -18; ry -= 7) {
+                        ctx.moveTo(-5, ry); ctx.lineTo(5, ry);
+                    }
+                    ctx.stroke();
+                    // Оглядовий майданчик
+                    ctx.fillStyle = '#B45309'; ctx.fillRect(-20, -28, 40, 12);
+                    ctx.strokeStyle = '#451A03'; ctx.lineWidth = 2; ctx.strokeRect(-20, -28, 40, 12);
+                    // Поручні
+                    ctx.strokeStyle = '#D97706'; ctx.lineWidth = 2;
+                    ctx.strokeRect(-19, -36, 38, 8);
+                    // Дах вишки
+                    ctx.fillStyle = '#7C2D12';
+                    ctx.beginPath();
+                    ctx.moveTo(-24, -36); ctx.lineTo(0, -52); ctx.lineTo(24, -36);
+                    ctx.closePath(); ctx.fill();
+                    ctx.strokeStyle = '#451A03'; ctx.stroke();
                     ctx.restore();
                     return;
                 }

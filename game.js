@@ -921,8 +921,9 @@ class PirateManager {
                 speed = 45;
                 if (dist < 120 && pirate.attackCooldown <= 0) {
                     pirate.attackCooldown = 2.1;
+                    const diffDmg = game.difficulty === 'easy' ? 0.6 : game.difficulty === 'hard' ? 1.5 : 1.0;
                     const armorReduction = player.inventory && player.inventory.hasItem('metal_armor', 1) ? 0.6 : 1.0;
-                    player.health = Math.max(0, player.health - Math.round(7 * armorReduction));
+                    player.health = Math.max(0, player.health - Math.round(7 * armorReduction * diffDmg));
                     game.showNotification('Пірати відкрили вогонь по вашому човну!', 'danger');
                 }
             } else if (pirate.patrolTimer <= 0) {
@@ -1035,8 +1036,8 @@ class NightZombieManager {
             const dx = game.player.x - zombie.x;
             const dy = game.player.y - zombie.y;
             const dist = Math.hypot(dx, dy);
-            if (dist > 26 && !game.player.inBoat) {
-                const speed = 38;
+            if (dist > 26 && !game.player.inBoat && !game.player.onWatchtower) {
+                const speed = game.difficulty === 'hard' ? 46 : game.difficulty === 'easy' ? 32 : 38;
                 const nx = zombie.x + dx / dist * speed * dt;
                 const ny = zombie.y + dy / dist * speed * dt;
                 const tile = game.world.getTileAtWorld(nx, ny);
@@ -1044,10 +1045,11 @@ class NightZombieManager {
                     zombie.x = nx;
                     zombie.y = ny;
                 }
-            } else if (dist < 32 && zombie.attackCooldown <= 0 && !game.player.inBoat) {
+            } else if (dist < 32 && zombie.attackCooldown <= 0 && !game.player.inBoat && !game.player.onWatchtower) {
                 zombie.attackCooldown = 1.15;
+                const diffDmg = game.difficulty === 'easy' ? 0.6 : game.difficulty === 'hard' ? 1.5 : 1.0;
                 const armorMod = game.player.inventory && game.player.inventory.hasItem('metal_armor', 1) ? 0.6 : 1.0;
-                game.player.health = Math.max(0, game.player.health - Math.round(5 * armorMod));
+                game.player.health = Math.max(0, game.player.health - Math.round(5 * armorMod * diffDmg));
                 game.showNotification('Зомбі вкусив вас!', 'danger');
             }
         }
@@ -1153,6 +1155,7 @@ class Game {
         this.player = new Player(cx, cy);
         this.boat = this.createStartingBoat(true);
         this.crashSites = [];
+        this.shipwrecks = [];
         
         if (this.systemsLoaded) {
             this.timeSystem = new window.TimeSystem();
@@ -1178,6 +1181,12 @@ class Game {
             this.player.inventory.addItem('branch', 5);
             this.player.inventory.addItem('stone', 2);
             this.player.inventory.addItem('berry', 5);
+            if (this.difficulty === 'easy') {
+                this.player.inventory.addItem('canned_food', 2);
+                this.player.inventory.addItem('water', 2);
+                this.player.inventory.addItem('branch', 4);
+                this.player.inventory.addItem('stone', 2);
+            }
         }
 
         // --- EXPANSION SYSTEMS INITIALIZATION ---
@@ -1267,6 +1276,8 @@ class Game {
             this.boat.y = this.player.y;
         }
         this.crashSites = data.crashSites || [];
+        this.shipwrecks = data.shipwrecks || [];
+        this.difficulty = data.difficulty || 'normal';
         
         if (this.systemsLoaded) {
             this.timeSystem = window.TimeSystem.deserialize(data.timeSystem);
@@ -1583,7 +1594,7 @@ class Game {
             this.buildingSystem.update(dt, this.weatherSystem, this.timeSystem.totalTime);
             
             let pStats = { health: this.player.health, hunger: this.player.hunger, thirst: this.player.thirst, energy: this.player.energy };
-            this.survivalSystem.update(dt, pStats, this.weatherSystem, this.timeSystem);
+            this.survivalSystem.update(dt, pStats, this.weatherSystem, this.timeSystem, this.difficulty || 'normal');
             this.player.health = pStats.health;
             this.player.hunger = pStats.hunger;
             this.player.thirst = pStats.thirst;
@@ -1630,6 +1641,7 @@ class Game {
         this.world.drawResources(this.ctx, this.camera);
         this.world.drawDroppedItems(this.ctx, this.camera);
         this.drawCrashSites();
+        this.drawShipwrecks();
         this.drawBoat();
         if (this.pirateManager) this.pirateManager.draw(this.ctx, this.camera);
         
@@ -1857,6 +1869,43 @@ class Game {
         }
     }
 
+    drawShipwrecks() {
+        if (!this.shipwrecks) return;
+        const time = this.systemsLoaded ? this.timeSystem.totalTime : 0;
+        for (const ship of this.shipwrecks) {
+            if (!this.camera.isVisible(ship.x, ship.y, 120)) continue;
+            const pos = this.camera.worldToScreen(ship.x, ship.y);
+            this.ctx.save();
+            this.ctx.translate(pos.x, pos.y);
+            // Тінь
+            this.ctx.fillStyle = 'rgba(0,0,0,0.25)'; this.ctx.beginPath(); this.ctx.ellipse(0, 22, 50, 12, 0, 0, Math.PI * 2); this.ctx.fill();
+            // Корпус судна
+            this.ctx.fillStyle = '#5C3317';
+            this.ctx.beginPath();
+            this.ctx.moveTo(-40, 10); this.ctx.lineTo(-36, -15); this.ctx.lineTo(36, -15); this.ctx.lineTo(40, 10);
+            this.ctx.quadraticCurveTo(0, 22, -40, 10);
+            this.ctx.fill();
+            this.ctx.strokeStyle = '#3E1E08'; this.ctx.lineWidth = 2; this.ctx.stroke();
+            // Палуба
+            this.ctx.fillStyle = '#8B6914'; this.ctx.fillRect(-30, -14, 60, 20);
+            // Щоглова частина (зламана)
+            this.ctx.strokeStyle = '#4B3010'; this.ctx.lineWidth = 3;
+            this.ctx.beginPath(); this.ctx.moveTo(-5, -14); this.ctx.lineTo(-8, -40); this.ctx.stroke();
+            // Зламане вітрило
+            this.ctx.fillStyle = 'rgba(220,200,170,0.6)';
+            this.ctx.beginPath(); this.ctx.moveTo(-8, -38); this.ctx.lineTo(-8, -18); this.ctx.lineTo(14, -24); this.ctx.closePath(); this.ctx.fill();
+            // Маркер якщо не лутнуте
+            if (!ship.looted) {
+                const glow = 0.5 + Math.sin(time * 3) * 0.2;
+                this.ctx.fillStyle = `rgba(245, 158, 11, ${glow})`;
+                this.ctx.beginPath(); this.ctx.arc(0, -48, 8, 0, Math.PI * 2); this.ctx.fill();
+                this.ctx.fillStyle = '#FFF'; this.ctx.font = 'bold 10px sans-serif'; this.ctx.textAlign = 'center';
+                this.ctx.fillText('⚓', 0, -44);
+            }
+            this.ctx.restore();
+        }
+    }
+
     drawBuilding(building, pos, bDef) {
         if (!bDef) return;
         const ctx = this.ctx;
@@ -2026,9 +2075,60 @@ class Game {
         if (event.type === 'plane_crash') {
             const site = this.createCrashSite();
             this.showNotification(site ? 'Подія: літак падає — знайдіть уламки та припаси!' : event.message, 'warning');
+        } else if (event.type === 'shipwreck') {
+            const ship = this.createShipwreck();
+            this.showNotification(ship ? '⚓ Закинуте судно дрейфує біля берега! Пливіть обшукати!' : event.message, 'warning');
         } else {
             this.showNotification(`Подія: ${event.type}`, 'info');
         }
+    }
+
+    createShipwreck() {
+        for (let attempt = 0; attempt < 400; attempt++) {
+            const tx = Math.floor(Math.random() * this.world.width);
+            const ty = Math.floor(Math.random() * this.world.height);
+            const tile = this.world.getTile(tx, ty);
+            // Судно спавниться на мілкій воді (тайл 1) біля берега
+            if (tile !== 1) continue;
+            const x = tx * this.tileSize + this.tileSize / 2;
+            const y = ty * this.tileSize + this.tileSize / 2;
+            const dist = Math.hypot(x - this.player.x, y - this.player.y);
+            if (dist < 300 || dist > 1500) continue;
+            const ship = {
+                id: 'ship_' + Date.now() + '_' + Math.floor(Math.random() * 1000),
+                x, y, looted: false,
+                loot: [
+                    { id: 'rifle', count: 1 },
+                    { id: 'machinegun', count: Math.random() < 0.3 ? 1 : 0 },
+                    { id: 'ammo', count: 20 + Math.floor(Math.random() * 20) },
+                    { id: 'metal_scrap', count: 15 + Math.floor(Math.random() * 15) },
+                    { id: 'fuel', count: 3 + Math.floor(Math.random() * 3) },
+                    { id: 'canned_food', count: 4 + Math.floor(Math.random() * 4) },
+                    { id: 'water', count: 3 },
+                    { id: 'electronics', count: 5 + Math.floor(Math.random() * 5) },
+                    { id: 'plank', count: 8 + Math.floor(Math.random() * 8) }
+                ].filter(l => l.count > 0),
+                salvageHealth: 400,
+                maxSalvageHealth: 400,
+                salvageLoot: [
+                    { id: 'metal_scrap', count: 30 },
+                    { id: 'plank', count: 15 },
+                    { id: 'fuel', count: 4 },
+                    { id: 'rope', count: 6 }
+                ]
+            };
+            if (!this.shipwrecks) this.shipwrecks = [];
+            this.shipwrecks.push(ship);
+            return ship;
+        }
+        return null;
+    }
+
+    getShipwreckNear(x, y, range) {
+        return (this.shipwrecks || []).find(s =>
+            Math.hypot(s.x - x, s.y - y) <= range &&
+            (!s.looted || (s.salvageHealth !== undefined && s.salvageHealth > 0))
+        ) || null;
     }
 
     createCrashSite() {
@@ -2135,6 +2235,65 @@ class Game {
         }
     }
 
+    collectShipLoot(ship) {
+        let collected = 0;
+        for (const stack of ship.loot) {
+            if (stack.count <= 0) continue;
+            const added = this.player.inventory.addItem(stack.id, stack.count);
+            stack.count -= added;
+            collected += added;
+        }
+        ship.looted = ship.loot.every(stack => stack.count <= 0);
+        if (collected > 0) {
+            this.showNotification(ship.looted ? '⚓ Ви обшукали все судно! Зброя, метал, пальне, їжа!' : '⚓ Зібрано частину припасів; звільніть місце в інвентарі.', 'success');
+            this.player.addXP(50);
+            this.spawnParticles(ship.x, ship.y, '#D97706', 25);
+        } else {
+            this.showNotification('Інвентар повний.', 'error');
+        }
+    }
+
+    salvageShip(ship) {
+        if (!ship.salvageHealth || ship.salvageHealth <= 0) {
+            this.showNotification('Судно вже повністю розібране.', 'info');
+            return;
+        }
+        const tool = this.player.equippedTool;
+        const toolData = tool ? window.ITEM_DB[tool] : null;
+        const isAxe = toolData && toolData.toolType === 'axe';
+        if (!isAxe) {
+            this.showNotification('Потрібна сокира, щоб розібрати судно!', 'warning');
+            return;
+        }
+        window.GameTextures?.playerAction(this.player, 'swing');
+        const damage = 60;
+        ship.salvageHealth = Math.max(0, ship.salvageHealth - damage);
+        this.spawnParticles(ship.x, ship.y, '#8B6914', 12);
+        const progress = Math.floor((1 - ship.salvageHealth / ship.maxSalvageHealth) * 100);
+        if (ship.salvageHealth <= 0) {
+            for (const stack of (ship.salvageLoot || [])) {
+                if (stack.count <= 0) continue;
+                const added = this.player.inventory.addItem(stack.id, stack.count);
+                if (added < stack.count) {
+                    this.world.addDroppedItem(stack.id, stack.count - added, ship.x + Math.random() * 20 - 10, ship.y + Math.random() * 20 - 10);
+                }
+                stack.count = 0;
+            }
+            this.showNotification('⚓ Судно повністю розібрано! Отримано дошки, метал та пальне.', 'success');
+            this.player.addXP(90);
+            this.spawnParticles(ship.x, ship.y, '#D97706', 30);
+        } else {
+            if (Math.random() < 0.5) {
+                const added = this.player.inventory.addItem('plank', 1);
+                if (added === 0) this.world.addDroppedItem('plank', 1, ship.x, ship.y);
+            } else if (Math.random() < 0.7) {
+                const added = this.player.inventory.addItem('metal_scrap', 1);
+                if (added === 0) this.world.addDroppedItem('metal_scrap', 1, ship.x, ship.y);
+            }
+            this.showNotification(`⚓ Розбираєте судно... ${progress}%`, 'info');
+        }
+    }
+
     handleBoatInteraction() {
         if (!this.boat) return false;
         if (this.player.inBoat) {
@@ -2160,6 +2319,12 @@ class Game {
         const boatRange = nearDock ? 120 : 64;
         if (Math.hypot(this.boat.x - this.player.x, this.boat.y - this.player.y) <= boatRange) {
             this.player.x = this.boat.x; this.player.y = this.boat.y; this.player.inBoat = true;
+            const notificationArea = document.getElementById('notification-area');
+            if (notificationArea) {
+                for (const notification of notificationArea.querySelectorAll('.notification')) {
+                    if (/цунам|наводн/i.test(notification.textContent || '')) notification.remove();
+                }
+            }
             const msg = nearDock ? 'Ви відчалили від причалу!' : 'Ви сіли в човен. Пливіть до інших островів!';
             this.showNotification(msg, 'success');
             return true;
@@ -2183,8 +2348,8 @@ class Game {
             }
             return;
         }
-        const range = isGun ? item.range : (this.player.equippedTool === 'spear' ? 72 : 48);
-        const cooldown = isGun ? item.cooldown : 0.55;
+        const range = isGun ? 99999 : (this.player.equippedTool === 'spear' ? 72 : 48);
+        const cooldown = isGun ? (item.cooldown || 0.16) : 0.55;
         if (now - this.lastAttackAt < cooldown * 1000) return;
         if (isGun && !this.player.inventory.hasItem('ammo', 1)) {
             this.lastAttackAt = now;
@@ -2194,14 +2359,43 @@ class Game {
 
         const candidates = [];
         if (this.zombieManager) {
-            for (const zombie of this.zombieManager.zombies) candidates.push({ entity: zombie, type: 'zombie', radius: 18 });
+            for (const zombie of this.zombieManager.zombies) candidates.push({ entity: zombie, type: 'zombie', radius: 22 });
         }
         if (this.pirateManager) {
-            for (const pirate of this.pirateManager.pirates) candidates.push({ entity: pirate, type: 'pirate', radius: 28 });
+            for (const pirate of this.pirateManager.pirates) candidates.push({ entity: pirate, type: 'pirate', radius: 30 });
+        }
+        if (this.fortPirates) {
+            for (const fp of this.fortPirates) {
+                if (fp.health > 0) candidates.push({ entity: fp, type: 'fort_pirate', radius: 22 });
+            }
         }
         if (this.animalManager) {
             for (const animal of this.animalManager.animals) {
-                candidates.push({ entity: animal, type: 'animal', radius: animal.width / 2 });
+                candidates.push({ entity: animal, type: 'animal', radius: Math.max(18, (animal.width || 24) / 2) });
+            }
+        }
+        if (this.megaSystem) {
+            for (const b of (this.megaSystem.bosses || [])) {
+                if (b.active) candidates.push({ entity: b, type: 'boss', radius: 34 });
+            }
+            for (const sp of (this.megaSystem.activeSiegePirates || [])) {
+                if (sp.health > 0) candidates.push({ entity: sp, type: 'siege_pirate', radius: 22 });
+            }
+            if (this.megaSystem.cursedChest && this.megaSystem.cursedChest.wraiths) {
+                for (const w of this.megaSystem.cursedChest.wraiths) {
+                    if (w.active) candidates.push({ entity: w, type: 'wraith', radius: 24 });
+                }
+            }
+            for (const ph of (this.megaSystem.insomniaPhantoms || [])) {
+                if (ph.health > 0) candidates.push({ entity: ph, type: 'insomnia_phantom', radius: 24 });
+            }
+        }
+        // Вогнепальна зброя може влучати в будь-які об'єкти на карті (дерева, камені, ящики тощо)
+        if (isGun && this.world && this.world.resources) {
+            for (const r of this.world.resources) {
+                if (!r.depleted && r.health > 0) {
+                    candidates.push({ entity: r, type: 'resource', radius: 18 });
+                }
             }
         }
 
@@ -2260,15 +2454,68 @@ class Game {
         if (!target) return;
 
         const damage = isGun ? item.damage : (this.player.equippedTool === 'spear' ? 22 : this.player.equippedTool === 'stone_axe' ? 15 : 8);
-        let defeated;
-        if (type === 'zombie') defeated = this.zombieManager.damage(target, damage, this);
-        else if (type === 'pirate') defeated = this.pirateManager.damage(target, damage, this);
-        else defeated = this.animalManager.damage(target, damage, this);
-        const hitColor = type === 'zombie' ? '#84CC16' : type === 'animal' ? '#22C55E' : '#F59E0B';
+        let defeated = false;
+        if (type === 'zombie') {
+            defeated = this.zombieManager.damage(target, damage, this);
+        } else if (type === 'pirate') {
+            defeated = this.pirateManager.damage(target, damage, this);
+        } else if (type === 'animal') {
+            defeated = this.animalManager.damage(target, damage, this);
+        } else if (type === 'fort_pirate') {
+            target.health -= damage;
+            if (target.health <= 0) {
+                defeated = true;
+                this.fortPirates = this.fortPirates.filter(fp => fp !== target);
+                this.world.addDroppedItem('gold_coin', 2, target.x, target.y);
+                this.world.addDroppedItem('ammo', 5, target.x, target.y);
+            }
+        } else if (type === 'boss' && this.megaSystem) {
+            this.megaSystem.attackBoss(target, this.player.equippedTool);
+            defeated = !target.active;
+        } else if (type === 'siege_pirate') {
+            target.health -= damage;
+            if (target.health <= 0) {
+                defeated = true;
+                this.megaSystem.activeSiegePirates = this.megaSystem.activeSiegePirates.filter(sp => sp !== target);
+                this.world.addDroppedItem('gold_coin', 1, target.x, target.y);
+            }
+        } else if (type === 'wraith' && this.megaSystem) {
+            this.megaSystem.attackWraith(target, this.player.equippedTool);
+            defeated = !target.active;
+        } else if (type === 'insomnia_phantom' && this.megaSystem) {
+            target.health -= damage;
+            if (target.health <= 0) {
+                defeated = true;
+                this.megaSystem.insomniaPhantoms = this.megaSystem.insomniaPhantoms.filter(ph => ph !== target);
+                this.megaSystem.sanity = Math.min(this.megaSystem.maxSanity, this.megaSystem.sanity + 5);
+            }
+        } else if (type === 'resource') {
+            target.health -= damage;
+            if (target.health <= 0) {
+                defeated = true;
+                target.depleted = true;
+                target.depletedAt = this.timeSystem ? this.timeSystem.totalTime : 0;
+                for (const d of (target.drops || [])) {
+                    this.world.addDroppedItem(d.id, d.count, target.x, target.y);
+                }
+                this.world.resources = this.world.resources.filter(r => r !== target);
+            }
+        }
+        const hitColor = type === 'zombie' ? '#84CC16' : type === 'animal' ? '#22C55E' : (type === 'insomnia_phantom' || type === 'wraith') ? '#A855F7' : '#F59E0B';
         this.spawnParticles(target.x, target.y, hitColor, 10);
-        const defeatMessage = type === 'zombie' ? 'Зомбі знищено!' : type === 'animal' ? 'Тварину впольовано!' : 'Піратський корабель потоплено!';
-        this.showNotification(defeated ? defeatMessage : `Влучання: ${damage}`, defeated ? 'success' : 'info');
-        if (defeated && type !== 'animal') this.player.addXP(type === 'zombie' ? 12 : 30);
+        const defeatMsgs = {
+            zombie: 'Зомбі знищено!',
+            animal: 'Тварину впольовано!',
+            pirate: 'Піратський корабель потоплено!',
+            fort_pirate: 'Пірата форту ліквідовано!',
+            boss: `Боса "${target.name}" переможено!`,
+            siege_pirate: 'Пірата-нападника знищено!',
+            wraith: 'Примару вигнано!',
+            insomnia_phantom: '👻 Фантома безсоння знищено!',
+            resource: `Зруйновано пострілом!`
+        };
+        this.showNotification(defeated ? (defeatMsgs[type] || 'Ціль знищено!') : `Влучання: ${damage}`, defeated ? 'success' : 'info');
+        if (defeated && type !== 'animal' && type !== 'resource') this.player.addXP(type === 'zombie' ? 12 : 30);
     }
 
     drawTooltips() {
@@ -2310,6 +2557,26 @@ class Game {
             if (crash) {
                 text = crash.looted ? (crash.salvageHealth > 0 ? '[E] Розібрати уламки (потрібна сокира)' : '[E] Уламки повністю розібрані') : '[E] Обшукати уламки літака';
                 targetX = crash.x; targetY = crash.y;
+                targetFound = true;
+            }
+        }
+        if (!targetFound) {
+            const ship = this.getShipwreckNear(px, py, range + 15);
+            if (ship) {
+                text = ship.looted ? (ship.salvageHealth > 0 ? '[E] Розібрати судно (потрібна сокира)' : '[E] Судно повністю розібране') : '[E] Обшукати закинуте судно';
+                targetX = ship.x; targetY = ship.y;
+                targetFound = true;
+            }
+        }
+        if (!targetFound && this.player.onWatchtower) {
+            text = '[E] Спуститися з вишки';
+            targetX = px; targetY = py - 20;
+            targetFound = true;
+        } else if (!targetFound && this.buildingSystem) {
+            const wt = this.buildingSystem.buildings.find(b => b.type === 'watchtower' && Math.hypot(b.x - px, b.y - py) <= 65);
+            if (wt) {
+                text = '[E] Піднятися на вишку';
+                targetX = wt.x; targetY = wt.y;
                 targetFound = true;
             }
         }
@@ -2429,6 +2696,19 @@ class Game {
                 this.showNotification('Уламки вже повністю розібрані.', 'info');
             } else {
                 this.showNotification('Уламки вже обшукані.', 'info');
+            }
+            return;
+        }
+
+        // Закинуте судно — лутаємо або розбираємо
+        const ship = this.getShipwreckNear(px, py, range + 10);
+        if (ship) {
+            if (!ship.looted) {
+                this.collectShipLoot(ship);
+            } else if (ship.salvageHealth !== undefined && ship.salvageHealth > 0) {
+                this.salvageShip(ship);
+            } else {
+                this.showNotification('Судно вже повністю розібране.', 'info');
             }
             return;
         }
@@ -2593,10 +2873,34 @@ class Game {
                 placed = true;
             }
             if (placed) {
-                this.buildingSystem.place(this.selectedBuilding, wx, wy);
-                this.showNotification("Будівлю споруджено!", 'success');
+                if (this.selectedBuilding === 'bridge') {
+                    // Ставимо одразу 3 секції мосту в напрямку від гравця до курсора!
+                    const dx = wx - this.player.x;
+                    const dy = wy - this.player.y;
+                    let stepX = 0, stepY = 0;
+                    if (Math.abs(dx) >= Math.abs(dy)) {
+                        stepX = dx >= 0 ? 32 : -32;
+                    } else {
+                        stepY = dy >= 0 ? 64 : -64;
+                    }
+                    let builtCount = 0;
+                    for (let i = 0; i < 3; i++) {
+                        const bx = wx + stepX * i;
+                        const by = wy + stepY * i;
+                        const check = this.buildingSystem.canPlace('bridge', bx, by, this.world.tiles, this.world.tileSize);
+                        if (check.valid) {
+                            this.buildingSystem.place('bridge', bx, by);
+                            this.spawnParticles(bx, by, '#F4D03F', 12);
+                            builtCount++;
+                        }
+                    }
+                    this.showNotification(`🌉 Побудовано міст (${builtCount} секції)!`, 'success');
+                } else {
+                    this.buildingSystem.place(this.selectedBuilding, wx, wy);
+                    this.showNotification("Будівлю споруджено!", 'success');
+                    this.spawnParticles(wx, wy, '#F4D03F', 20);
+                }
                 this.player.addXP(20);
-                this.spawnParticles(wx, wy, '#F4D03F', 20);
                 this.exitBuildMode();
             } else {
                 this.showNotification("Недостатньо матеріалів для будівництва", 'error');
@@ -2629,6 +2933,8 @@ class Game {
             animalManager: this.animalManager ? this.animalManager.serialize() : null,
             boat: this.boat,
             crashSites: this.crashSites,
+            shipwrecks: this.shipwrecks,
+            difficulty: this.difficulty || 'normal',
             pirateManager: this.pirateManager ? this.pirateManager.serialize() : null,
             zombieManager: this.zombieManager ? this.zombieManager.serialize() : null
         };
@@ -3077,7 +3383,10 @@ window.updateBuildingUI = function() {
         'garden': [{id:'wood', count:4}, {id:'fiber', count:2}],
         'dog_house': [{id:'wood', count:8}, {id:'fiber', count:4}],
         'feeder': [{id:'wood', count:2}, {id:'stone', count:1}],
-        'waterer': [{id:'wood', count:2}, {id:'stone', count:1}]
+        'waterer': [{id:'wood', count:2}, {id:'stone', count:1}],
+        'bridge': [{id:'plank', count:6}, {id:'rope', count:2}],
+        'dock': [{id:'plank', count:12}, {id:'rope', count:4}, {id:'stone', count:6}],
+        'watchtower': [{id:'wood', count:12}, {id:'plank', count:6}, {id:'rope', count:4}]
     };
     
     for (let bldId in window.BUILDING_DB) {
@@ -3576,6 +3885,15 @@ window.updateMapUI = function() {
             ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI * 2); ctx.fill();
         }
     }
+    if (window.game.shipwrecks) {
+        ctx.fillStyle = '#38BDF8';
+        for (const ship of window.game.shipwrecks) {
+            if (ship.looted) continue;
+            const x = (ship.x / window.game.tileSize) * scaleX;
+            const y = (ship.y / window.game.tileSize) * scaleY;
+            ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI * 2); ctx.fill();
+        }
+    }
     if (window.game.pirateManager) {
         ctx.fillStyle = '#7F1D1D';
         for (const pirate of window.game.pirateManager.pirates) {
@@ -3605,6 +3923,20 @@ function initIslandGameApp() {
     appInitialized = true;
 
     window.game = new Game();
+    window.game.difficulty = 'normal';
+
+    // Difficulty selector buttons
+    const syncDifficultySelector = difficulty => {
+        document.querySelectorAll('.diff-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.dataset.diff === difficulty);
+        });
+    };
+    document.querySelectorAll('.diff-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+            window.game.difficulty = btn.dataset.diff || 'normal';
+            syncDifficultySelector(window.game.difficulty);
+        });
+    });
     
     // Check savegame for Continue button
     let btnCont = document.getElementById('btn-continue');
@@ -3630,6 +3962,7 @@ function initIslandGameApp() {
     if (btnCont) btnCont.onclick = () => {
         try {
             window.game.loadFromSave();
+            syncDifficultySelector(window.game.difficulty || 'normal');
             window.game.start();
         } catch (err) {
             console.error('Error loading game:', err);
