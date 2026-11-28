@@ -113,6 +113,17 @@
         line(c, 'M6 9l19 16M25 9L6 25', '#80613f', 1);
     });
     register('fishing_rod', c => { line(c, 'M5 29L21 3', '#b18a53', 3); line(c, 'M21 3Q33 6 26 22q-4 4 -4 -1', '#e4e6d8', 1); });
+    register('torch', c => {
+        line(c, 'M10 29L21 9', '#7a4e2d', 5);
+        shape(c, 'M16 11Q8 7 12 2Q16 -2 20 4Q24 9 16 11Z', '#ff9f32');
+        shape(c, 'M16 9Q12 6 15 3Q18 6 19 9Z', '#ffe58a');
+    });
+    register('flashlight', c => {
+        shape(c, 'M8 14h15v13H8Z', '#46545a');
+        shape(c, 'M20 11h9v19h-9Z', '#8ea0a3');
+        rect(c, 22, 15, 5, 11, '#d8e4de');
+        line(c, 'M11 14V9h9v5M11 27h12', '#aebcc0', 2);
+    });
     register('basket water_container dog_food_bowl dog_water_bowl', (c, id) => {
         shape(c, 'M4 12L8 27H25L29 12Z', '#b38753');
         shape(c, 'M4 12Q16 4 29 12Q16 20 4 12Z', id.includes('water') ? '#61b9d2' : '#6c4d32');

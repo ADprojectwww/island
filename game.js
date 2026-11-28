@@ -596,24 +596,33 @@ class World {
         return this.getTile(tx, ty);
     }
     isWalkable(wx, wy, pw, ph, buildingSystem, currentX, currentY) {
-        let tx = Math.floor(wx / this.tileSize);
-        let ty = Math.floor(wy / this.tileSize);
-        let tType = this.getTile(tx, ty);
-        // Check if there's a bridge/dock building on this water tile
-        if ((tType === 0 || tType === 1) && buildingSystem) {
-            const bx = tx * this.tileSize + this.tileSize / 2;
-            const by = ty * this.tileSize + this.tileSize / 2;
-            const bridges = buildingSystem.buildings.filter(b => (b.type === 'bridge' || b.type === 'dock'));
-            const onBridge = bridges.some(b => {
-                const bDef = window.BUILDING_DB[b.type];
-                if (!bDef) return false;
-                return wx >= b.x - bDef.width/2 && wx <= b.x + bDef.width/2 &&
-                       wy >= b.y - bDef.height/2 && wy <= b.y + bDef.height/2;
-            });
-            if (!onBridge) return false;
-        } else if (tType === 0 || tType === 1) {
-            return false;
-        } 
+        const halfW = pw / 2;
+        const halfH = ph / 2;
+        const points = [
+            [wx - halfW, wy - halfH],
+            [wx + halfW, wy - halfH],
+            [wx - halfW, wy + halfH],
+            [wx + halfW, wy + halfH]
+        ];
+        for (const [px, py] of points) {
+            const tx = Math.floor(px / this.tileSize);
+            const ty = Math.floor(py / this.tileSize);
+            if (tx < 0 || tx >= this.width || ty < 0 || ty >= this.height) return false;
+            const tile = this.getTile(tx, ty);
+            if (tile === 0 || tile === 1) {
+                let onWalkableStructure = false;
+                if (buildingSystem) {
+                    onWalkableStructure = buildingSystem.buildings.some(b => {
+                        if (b.type !== 'bridge' && b.type !== 'dock') return false;
+                        const bDef = window.BUILDING_DB[b.type];
+                        if (!bDef) return false;
+                        return px >= b.x - bDef.width / 2 && px <= b.x + bDef.width / 2 &&
+                               py >= b.y - bDef.height / 2 && py <= b.y + bDef.height / 2;
+                    });
+                }
+                if (!onWalkableStructure) return false;
+            }
+        }
 
         if (buildingSystem) {
             let rects = buildingSystem.getCollisionRects();
@@ -1753,6 +1762,26 @@ class Game {
             if (light < 1.0) {
                 this.ctx.fillStyle = `rgba(0, 0, 30, ${1.0 - light})`;
                 this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+
+                const equipped = this.player && this.player.equippedTool
+                    ? window.ITEM_DB[this.player.equippedTool]
+                    : null;
+                if (equipped && equipped.lightRadius) {
+                    const pos = this.camera.worldToScreen(this.player.x, this.player.y);
+                    const radius = equipped.lightRadius;
+                    const gradient = this.ctx.createRadialGradient(pos.x, pos.y, 8, pos.x, pos.y, radius);
+                    if (this.player.equippedTool === 'flashlight') {
+                        gradient.addColorStop(0, 'rgba(255, 245, 170, 0.58)');
+                        gradient.addColorStop(0.55, 'rgba(255, 235, 150, 0.28)');
+                        gradient.addColorStop(1, 'rgba(255, 220, 120, 0)');
+                    } else {
+                        gradient.addColorStop(0, 'rgba(255, 170, 70, 0.48)');
+                        gradient.addColorStop(0.65, 'rgba(255, 120, 35, 0.22)');
+                        gradient.addColorStop(1, 'rgba(255, 100, 20, 0)');
+                    }
+                    this.ctx.fillStyle = gradient;
+                    this.ctx.fillRect(pos.x - radius, pos.y - radius, radius * 2, radius * 2);
+                }
             }
         }
         
@@ -2297,13 +2326,36 @@ class Game {
     handleBoatInteraction() {
         if (!this.boat) return false;
         if (this.player.inBoat) {
-            for (let radius = 0; radius <= 4; radius++) {
+            const nearDock = this.buildingSystem
+                ? this.buildingSystem.buildings.find(b => b.type === 'dock' && Math.hypot(b.x - this.boat.x, b.y - this.boat.y) <= 96)
+                : null;
+
+            if (nearDock) {
+                for (let radius = 0; radius <= 2; radius++) {
+                    for (let dy = -radius; dy <= radius; dy++) {
+                        for (let dx = -radius; dx <= radius; dx++) {
+                            const x = nearDock.x + dx * this.tileSize;
+                            const y = nearDock.y + dy * this.tileSize;
+                            if (Math.hypot(x - nearDock.x, y - nearDock.y) > 48) continue;
+                            if (!this.world.isWalkable(x, y, this.player.width, this.player.height, this.buildingSystem, x, y)) continue;
+                            this.player.x = x;
+                            this.player.y = y;
+                            this.player.inBoat = false;
+                            this.showNotification('Ви висадилися на причалі.', 'info');
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            for (let radius = 1; radius <= 2; radius++) {
                 for (let dy = -radius; dy <= radius; dy++) {
                     for (let dx = -radius; dx <= radius; dx++) {
                         const x = this.boat.x + dx * this.tileSize;
                         const y = this.boat.y + dy * this.tileSize;
                         const tile = this.world.getTileAtWorld(x, y);
-                        if (tile !== 2 && tile !== 3 && tile !== 4) continue;
+                        if (tile !== 2) continue;
+                        if (Math.hypot(x - this.boat.x, y - this.boat.y) > 64) continue;
                         if (this.world.isWalkable(x, y, this.player.width, this.player.height, this.buildingSystem, x, y)) {
                             this.player.x = x; this.player.y = y; this.player.inBoat = false;
                             this.showNotification('Ви висадилися на берег.', 'info');
@@ -2348,8 +2400,12 @@ class Game {
             }
             return;
         }
-        const range = isGun ? 99999 : (this.player.equippedTool === 'spear' ? 72 : 48);
-        const cooldown = isGun ? (item.cooldown || 0.16) : 0.55;
+        const range = item && Number.isFinite(item.range)
+            ? (isGun ? 99999 : item.range)
+            : (this.player.equippedTool === 'spear' ? 72 : 48);
+        const cooldown = item && Number.isFinite(item.cooldown)
+            ? item.cooldown
+            : (isGun ? 0.16 : 0.55);
         if (now - this.lastAttackAt < cooldown * 1000) return;
         if (isGun && !this.player.inventory.hasItem('ammo', 1)) {
             this.lastAttackAt = now;
@@ -2367,6 +2423,11 @@ class Game {
         if (this.fortPirates) {
             for (const fp of this.fortPirates) {
                 if (fp.health > 0) candidates.push({ entity: fp, type: 'fort_pirate', radius: 22 });
+            }
+        }
+        if (this.activeRaidPirates) {
+            for (const pirate of this.activeRaidPirates) {
+                if (pirate.health > 0) candidates.push({ entity: pirate, type: 'raid_pirate', radius: 18 });
             }
         }
         if (this.animalManager) {
@@ -2453,7 +2514,9 @@ class Game {
         }
         if (!target) return;
 
-        const damage = isGun ? item.damage : (this.player.equippedTool === 'spear' ? 22 : this.player.equippedTool === 'stone_axe' ? 15 : 8);
+        const damage = item && Number.isFinite(item.damage)
+            ? item.damage
+            : (this.player.equippedTool === 'spear' ? 22 : this.player.equippedTool === 'stone_axe' ? 15 : 8);
         let defeated = false;
         if (type === 'zombie') {
             defeated = this.zombieManager.damage(target, damage, this);
@@ -2462,60 +2525,74 @@ class Game {
         } else if (type === 'animal') {
             defeated = this.animalManager.damage(target, damage, this);
         } else if (type === 'fort_pirate') {
-            target.health -= damage;
-            if (target.health <= 0) {
-                defeated = true;
+            target.health = Math.max(0, target.health - damage);
+            defeated = target.health <= 0;
+            if (defeated) {
                 this.fortPirates = this.fortPirates.filter(fp => fp !== target);
-                this.world.addDroppedItem('gold_coin', 2, target.x, target.y);
-                this.world.addDroppedItem('ammo', 5, target.x, target.y);
+                this.world.addDroppedItem('gold_coin', 2 + Math.floor(Math.random() * 3), target.x, target.y);
+                this.world.addDroppedItem('ammo', 4 + Math.floor(Math.random() * 6), target.x + 10, target.y);
+            }
+        } else if (type === 'raid_pirate') {
+            target.health = Math.max(0, target.health - damage);
+            defeated = target.health <= 0;
+            if (defeated) {
+                this.activeRaidPirates = this.activeRaidPirates.filter(pirate => pirate !== target);
+                this.world.addDroppedItem('gold_coin', 1 + Math.floor(Math.random() * 2), target.x, target.y);
             }
         } else if (type === 'boss' && this.megaSystem) {
             this.megaSystem.attackBoss(target, this.player.equippedTool);
             defeated = !target.active;
-        } else if (type === 'siege_pirate') {
-            target.health -= damage;
-            if (target.health <= 0) {
-                defeated = true;
-                this.megaSystem.activeSiegePirates = this.megaSystem.activeSiegePirates.filter(sp => sp !== target);
+        } else if (type === 'siege_pirate' && this.megaSystem) {
+            target.health = Math.max(0, target.health - damage);
+            defeated = target.health <= 0;
+            if (defeated) {
+                this.megaSystem.activeSiegePirates = this.megaSystem.activeSiegePirates.filter(pirate => pirate !== target);
                 this.world.addDroppedItem('gold_coin', 1, target.x, target.y);
             }
         } else if (type === 'wraith' && this.megaSystem) {
             this.megaSystem.attackWraith(target, this.player.equippedTool);
             defeated = !target.active;
         } else if (type === 'insomnia_phantom' && this.megaSystem) {
-            target.health -= damage;
-            if (target.health <= 0) {
-                defeated = true;
+            target.health = Math.max(0, target.health - damage);
+            defeated = target.health <= 0;
+            if (defeated) {
                 this.megaSystem.insomniaPhantoms = this.megaSystem.insomniaPhantoms.filter(ph => ph !== target);
                 this.megaSystem.sanity = Math.min(this.megaSystem.maxSanity, this.megaSystem.sanity + 5);
             }
         } else if (type === 'resource') {
-            target.health -= damage;
-            if (target.health <= 0) {
-                defeated = true;
+            target.health = Math.max(0, target.health - damage);
+            defeated = target.health <= 0;
+            if (defeated) {
                 target.depleted = true;
                 target.depletedAt = this.timeSystem ? this.timeSystem.totalTime : 0;
-                for (const d of (target.drops || [])) {
-                    this.world.addDroppedItem(d.id, d.count, target.x, target.y);
+                for (const drop of (target.drops || [])) {
+                    this.world.addDroppedItem(drop.id, drop.count, target.x, target.y);
                 }
-                this.world.resources = this.world.resources.filter(r => r !== target);
+                this.world.resources = this.world.resources.filter(resource => resource !== target);
             }
         }
-        const hitColor = type === 'zombie' ? '#84CC16' : type === 'animal' ? '#22C55E' : (type === 'insomnia_phantom' || type === 'wraith') ? '#A855F7' : '#F59E0B';
+
+        const hitColor = type === 'zombie' ? '#84CC16'
+            : type === 'animal' ? '#22C55E'
+            : (type === 'insomnia_phantom' || type === 'wraith') ? '#A855F7'
+            : '#F59E0B';
         this.spawnParticles(target.x, target.y, hitColor, 10);
         const defeatMsgs = {
             zombie: 'Зомбі знищено!',
             animal: 'Тварину впольовано!',
             pirate: 'Піратський корабель потоплено!',
             fort_pirate: 'Пірата форту ліквідовано!',
+            raid_pirate: 'Пірата-нападника знищено!',
             boss: `Боса "${target.name}" переможено!`,
             siege_pirate: 'Пірата-нападника знищено!',
             wraith: 'Примару вигнано!',
             insomnia_phantom: '👻 Фантома безсоння знищено!',
-            resource: `Зруйновано пострілом!`
+            resource: 'Зруйновано пострілом!'
         };
         this.showNotification(defeated ? (defeatMsgs[type] || 'Ціль знищено!') : `Влучання: ${damage}`, defeated ? 'success' : 'info');
-        if (defeated && type !== 'animal' && type !== 'resource') this.player.addXP(type === 'zombie' ? 12 : 30);
+        if (defeated && type !== 'animal' && type !== 'resource') {
+            this.player.addXP(type === 'zombie' ? 12 : 30);
+        }
     }
 
     drawTooltips() {
